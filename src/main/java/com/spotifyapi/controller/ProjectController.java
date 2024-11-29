@@ -2,7 +2,6 @@ package com.spotifyapi.controller;
 
 import com.spotifyapi.service.SpotifyAuth;
 import com.spotifyapi.service.UserService;
-import com.spotifyapi.service.impl.UserServiceImpl;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.AllArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -26,9 +25,9 @@ public class ProjectController {
         response.sendRedirect(spotifyAuth.authorize());
     }
 
-    @GetMapping("/get-user-data")
-    public String successAuth(@RequestParam String code) {
-        spotifyAuth.getAndSetAccessToken(code);
+    @GetMapping("/profile")
+    public String getProfile(@RequestParam String code) {
+        spotifyAuth.setAccessToken(code);
         return userService.getUserData();
     }
 }

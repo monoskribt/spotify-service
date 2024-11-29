@@ -5,6 +5,6 @@ public interface SpotifyAuth {
 
     String authorize();
 
-    void getAndSetAccessToken(String code);
+    void setAccessToken(String code);
 
 }

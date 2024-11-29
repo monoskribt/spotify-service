@@ -32,7 +32,7 @@ public class SpotifyAuthImpl implements SpotifyAuth {
     }
 
     @Override
-    public void getAndSetAccessToken(String code) {
+    public void setAccessToken(String code) {
         try {
             AuthorizationCodeCredentials credentials = spotifyApi.authorizationCode(code).build().execute();
             String accessToken = credentials.getAccessToken();
