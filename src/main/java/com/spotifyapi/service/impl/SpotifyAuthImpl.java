@@ -12,6 +12,8 @@ import se.michaelthelin.spotify.exceptions.SpotifyWebApiException;
 import se.michaelthelin.spotify.model_objects.credentials.AuthorizationCodeCredentials;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 
 @Service
@@ -32,17 +34,22 @@ public class SpotifyAuthImpl implements SpotifyAuth {
     }
 
     @Override
-    public void setAccessToken(String code) {
+    public List<String> getAuthorizationTokens(String code) {
+        List<String> tokens = new ArrayList<>();
         try {
             AuthorizationCodeCredentials credentials = spotifyApi.authorizationCode(code).build().execute();
             String accessToken = credentials.getAccessToken();
             String refreshToken = credentials.getRefreshToken();
             spotifyApi.setAccessToken(accessToken);
+            spotifyApi.setRefreshToken(refreshToken);
+
+            tokens.add(spotifyApi.getAccessToken());
+            tokens.add(spotifyApi.getRefreshToken());
 
             System.out.println(accessToken);
             System.out.println(refreshToken);
 
-            ResponseEntity.status(HttpStatusCode.valueOf(200)).build();
+            return tokens;
         } catch (IOException | SpotifyWebApiException | ParseException e) {
             e.printStackTrace();
             throw new RuntimeException(e.getMessage());
