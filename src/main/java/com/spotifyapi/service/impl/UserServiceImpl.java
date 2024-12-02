@@ -1,8 +1,10 @@
 package com.spotifyapi.service.impl;
 
 
+import com.spotifyapi.dto.TokensDTO;
 import com.spotifyapi.model.User;
-import com.spotifyapi.service.UserRepository;
+import com.spotifyapi.repository.UserRepository;
+import com.spotifyapi.service.UserService;
 import lombok.AllArgsConstructor;
 import org.apache.hc.core5.http.ParseException;
 import org.springframework.stereotype.Service;
@@ -10,16 +12,16 @@ import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.exceptions.SpotifyWebApiException;
 
 import java.io.IOException;
-import java.util.List;
 
 @Service
 @AllArgsConstructor
-public class UserServiceImpl {
+public class UserServiceImpl implements UserService {
 
     private final SpotifyApi spotifyApi;
     private final UserRepository userRepository;
 
-    public void saveUserData(List<String> tokens) {
+    @Override
+    public void saveUserData(TokensDTO tokens) {
         try {
             User newUser = new User();
 
@@ -28,13 +30,12 @@ public class UserServiceImpl {
             newUser.setUsername(userProfile.getDisplayName());
             newUser.setEmail(userProfile.getEmail());
             newUser.setSpotifyUserId(userProfile.getId());
-            newUser.setAccessToken(tokens.get(0));
-            newUser.setRefreshToken(tokens.get(1));
+            newUser.setAccessToken(tokens.getAccessToken());
+            newUser.setRefreshToken(tokens.getRefreshToken());
 
             userRepository.save(newUser);
         } catch (IOException | SpotifyWebApiException | ParseException e) {
             e.printStackTrace();
-            throw new RuntimeException("Error saving user data: " + e.getMessage());
         }
     }
 }

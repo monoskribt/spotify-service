@@ -1,5 +1,6 @@
 package com.spotifyapi.service.impl;
 
+import com.spotifyapi.dto.TokensDTO;
 import com.spotifyapi.service.SpotifyAuth;
 import lombok.RequiredArgsConstructor;
 import org.apache.hc.core5.http.ParseException;
@@ -34,25 +35,17 @@ public class SpotifyAuthImpl implements SpotifyAuth {
     }
 
     @Override
-    public List<String> getAuthorizationTokens(String code) {
-        List<String> tokens = new ArrayList<>();
+    public TokensDTO getAuthorizationTokens(String code) {
         try {
+
             AuthorizationCodeCredentials credentials = spotifyApi.authorizationCode(code).build().execute();
-            String accessToken = credentials.getAccessToken();
-            String refreshToken = credentials.getRefreshToken();
-            spotifyApi.setAccessToken(accessToken);
-            spotifyApi.setRefreshToken(refreshToken);
+            spotifyApi.setAccessToken(credentials.getAccessToken());
+            spotifyApi.setRefreshToken(credentials.getRefreshToken());
 
-            tokens.add(spotifyApi.getAccessToken());
-            tokens.add(spotifyApi.getRefreshToken());
-
-            System.out.println(accessToken);
-            System.out.println(refreshToken);
-
-            return tokens;
+            return new TokensDTO(credentials.getAccessToken(), credentials.getRefreshToken());
         } catch (IOException | SpotifyWebApiException | ParseException e) {
             e.printStackTrace();
-            throw new RuntimeException(e.getMessage());
+            throw new RuntimeException("Error retrieving tokens: " + e.getMessage());
         }
     }
 }
