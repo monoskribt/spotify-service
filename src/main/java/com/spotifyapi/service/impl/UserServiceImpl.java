@@ -1,6 +1,9 @@
 package com.spotifyapi.service.impl;
 
 
+import com.spotifyapi.dto.TokensDTO;
+import com.spotifyapi.model.User;
+import com.spotifyapi.repository.UserRepository;
 import com.spotifyapi.service.UserService;
 import lombok.AllArgsConstructor;
 import org.apache.hc.core5.http.ParseException;
@@ -15,19 +18,24 @@ import java.io.IOException;
 public class UserServiceImpl implements UserService {
 
     private final SpotifyApi spotifyApi;
+    private final UserRepository userRepository;
 
     @Override
-    public String getUserData() {
+    public void saveUserData(TokensDTO tokens) {
         try {
+            User newUser = new User();
+
             var userProfile = spotifyApi.getCurrentUsersProfile().build().execute();
-            return "You are get your data successfully! \n"
-                    + "User name: " + userProfile.getDisplayName() + " \n"
-                    + "Email: " + userProfile.getEmail() + " \n"
-                    + "Id: " + userProfile.getId() + " \n";
+
+            newUser.setUsername(userProfile.getDisplayName());
+            newUser.setEmail(userProfile.getEmail());
+            newUser.setSpotifyUserId(userProfile.getId());
+            newUser.setAccessToken(tokens.getAccessToken());
+            newUser.setRefreshToken(tokens.getRefreshToken());
+
+            userRepository.save(newUser);
         } catch (IOException | SpotifyWebApiException | ParseException e) {
             e.printStackTrace();
-            throw new RuntimeException(e.getMessage());
         }
     }
-
 }

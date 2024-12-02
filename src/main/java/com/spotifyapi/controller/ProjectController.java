@@ -1,6 +1,8 @@
 package com.spotifyapi.controller;
 
+import com.spotifyapi.dto.TokensDTO;
 import com.spotifyapi.service.SpotifyAuth;
+import com.spotifyapi.repository.UserRepository;
 import com.spotifyapi.service.UserService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.AllArgsConstructor;
@@ -17,8 +19,8 @@ import java.io.IOException;
 @AllArgsConstructor
 public class ProjectController {
 
-    private SpotifyAuth spotifyAuth;
-    private UserService userService;
+    private final SpotifyAuth spotifyAuth;
+    private final UserService userService;
 
     @GetMapping("/login")
     public void spotifyLogin(HttpServletResponse response) throws IOException {
@@ -27,7 +29,8 @@ public class ProjectController {
 
     @GetMapping("/profile")
     public String getProfile(@RequestParam String code) {
-        spotifyAuth.setAccessToken(code);
-        return userService.getUserData();
+        TokensDTO tokens = spotifyAuth.getAuthorizationTokens(code);
+        userService.saveUserData(tokens);
+        return "User profile saved successfully!";
     }
 }

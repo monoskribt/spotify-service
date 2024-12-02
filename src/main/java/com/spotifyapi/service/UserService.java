@@ -1,6 +1,9 @@
 package com.spotifyapi.service;
 
+import com.spotifyapi.dto.TokensDTO;
+
 public interface UserService {
 
-    String getUserData();
+    void saveUserData(TokensDTO tokens);
+
 }
