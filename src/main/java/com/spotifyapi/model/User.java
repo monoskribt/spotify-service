@@ -25,10 +25,7 @@ public class User {
     @Column(name = "spotify_user_id")
     private String spotifyUserId;
 
-    @Column(name = "access_token")
-    private String accessToken;
-
-    @Column(name = "refresh_token")
-    private String refreshToken;
+    @Column(name = "access_code")
+    private String accessCode;
 
 }

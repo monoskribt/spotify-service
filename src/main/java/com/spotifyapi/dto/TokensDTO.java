@@ -11,5 +11,6 @@ public class TokensDTO {
 
     private String accessToken;
     private String refreshToken;
+    private String accessCode;
 
 }
