@@ -9,4 +9,5 @@ public interface SpotifyAuth {
 
     TokensDTO getAuthorizationTokens(String code);
 
+    TokensDTO getNewAccessToken(String refreshToken);
 }

@@ -42,7 +42,27 @@ public class SpotifyAuthImpl implements SpotifyAuth {
             spotifyApi.setAccessToken(credentials.getAccessToken());
             spotifyApi.setRefreshToken(credentials.getRefreshToken());
 
-            return new TokensDTO(credentials.getAccessToken(), credentials.getRefreshToken(), code);
+            return new TokensDTO(credentials.getAccessToken(), credentials.getRefreshToken());
+
+        } catch (IOException | SpotifyWebApiException | ParseException e) {
+            e.printStackTrace();
+            throw new RuntimeException("Error retrieving tokens: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public TokensDTO getNewAccessToken(String refreshToken) {
+        try {
+            AuthorizationCodeCredentials credentials = spotifyApi.
+                    authorizationCodeRefresh()
+                    .refresh_token(refreshToken)
+                    .build()
+                    .execute();
+
+            spotifyApi.setAccessToken(credentials.getAccessToken());
+
+            return new TokensDTO(credentials.getAccessToken(), refreshToken);
+
         } catch (IOException | SpotifyWebApiException | ParseException e) {
             e.printStackTrace();
             throw new RuntimeException("Error retrieving tokens: " + e.getMessage());

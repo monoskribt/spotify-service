@@ -30,7 +30,6 @@ public class UserServiceImpl implements UserService {
             newUser.setUsername(userProfile.getDisplayName());
             newUser.setEmail(userProfile.getEmail());
             newUser.setSpotifyUserId(userProfile.getId());
-            newUser.setAccessCode(tokens.getAccessCode());
 
             userRepository.save(newUser);
         } catch (IOException | SpotifyWebApiException | ParseException e) {

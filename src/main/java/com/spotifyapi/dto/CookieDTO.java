@@ -1,5 +1,6 @@
 package com.spotifyapi.dto;
 
+import jakarta.servlet.http.Cookie;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
@@ -7,9 +8,9 @@ import lombok.Setter;
 @AllArgsConstructor
 @Getter
 @Setter
-public class TokensDTO {
+public class CookieDTO {
 
-    private String accessToken;
-    private String refreshToken;
+    private Cookie accessTokenCookie;
+    private Cookie refreshTokenCookie;
 
 }
