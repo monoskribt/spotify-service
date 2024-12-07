@@ -26,7 +26,23 @@ public class TokenValidation extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
-        // TODO
+        CookieDTO cookie = cookieService.getCookie(request);
+
+        if(cookie.getAccessTokenCookie() == null) {
+            if(cookie.getRefreshTokenCookie() != null) {
+                try {
+                    TokensDTO tokens = spotifyAuth.getNewAccessToken(cookie.getRefreshTokenCookie().getValue());
+
+                    cookieService.setCookie(response, tokens);
+                } catch (Exception e) {
+                    response.sendRedirect(spotifyAuth.authorize());
+                }
+            }
+            else {
+                response.sendRedirect(spotifyAuth.authorize());
+            }
+        }
+        filterChain.doFilter(request, response);
     }
 
 }

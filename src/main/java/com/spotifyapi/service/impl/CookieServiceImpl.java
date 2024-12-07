@@ -17,13 +17,15 @@ import java.util.Optional;
 @AllArgsConstructor
 public class CookieServiceImpl implements CookieService {
 
+    private final SpotifyAuth spotifyAuth;
+
     @Override
     public void setCookie(HttpServletResponse response, TokensDTO tokens) {
         Cookie cookieAccessToken = new Cookie("access_token", tokens.getAccessToken());
         Cookie cookieRefreshToken = new Cookie("refresh_token", tokens.getRefreshToken());
 
         cookieAccessToken.setMaxAge(60 * 60);
-        cookieRefreshToken.setMaxAge(14 * 24 * 60 * 60);
+        cookieRefreshToken.setMaxAge(7 * 24 * 60 * 60);
 
         cookieAccessToken.setPath("/");
         cookieRefreshToken.setPath("/");
@@ -34,14 +36,25 @@ public class CookieServiceImpl implements CookieService {
 
     @Override
     public CookieDTO getCookie(HttpServletRequest request) {
-        // TODO
-        return null;
-    }
+        Cookie[] cookies = Optional.ofNullable(request.getCookies()).orElse(new Cookie[0]);
 
+        Cookie accessToken = null;
+        Cookie refreshToken = null;
 
-    @Override
-    public boolean isExpired(CookieDTO cookie) {
-        return cookie.getAccessTokenCookie().getMaxAge() <= 0;
+        for (Cookie cookie : cookies) {
+            if (cookie.getName().equals("access_token")) {
+                accessToken = cookie;
+            } else if (cookie.getName().equals("refresh_token")) {
+                refreshToken = cookie;
+            }
+
+            if (accessToken != null && refreshToken != null) {
+                break;
+            }
+        }
+
+        return new CookieDTO(accessToken, refreshToken);
+
     }
 
 

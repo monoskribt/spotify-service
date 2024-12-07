@@ -11,6 +11,4 @@ public interface CookieService {
     void setCookie(HttpServletResponse response, TokensDTO tokens);
 
     CookieDTO getCookie(HttpServletRequest request);
-
-    boolean isExpired(CookieDTO cookie);
 }

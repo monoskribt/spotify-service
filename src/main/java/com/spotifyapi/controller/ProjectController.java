@@ -38,4 +38,10 @@ public class ProjectController {
         userService.saveUserData(tokens);
         return "User profile saved successfully!";
     }
+
+
+    @GetMapping("/info")
+    public String getInfo() {
+        return "Welcome to your info";
+    }
 }
