@@ -6,7 +6,6 @@ import com.spotifyapi.service.CookieService;
 import com.spotifyapi.service.SpotifyAuth;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.AllArgsConstructor;
@@ -26,23 +25,30 @@ public class TokenValidation extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
+        if (request.getRequestURI().equals("/api/login") || request.getRequestURI().equals("/api/profile")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         CookieDTO cookie = cookieService.getCookie(request);
 
-        if(cookie.getAccessTokenCookie() == null) {
-            if(cookie.getRefreshTokenCookie() != null) {
+        if (cookie.getAccessTokenCookie() == null) {
+            if (cookie.getRefreshTokenCookie() != null) {
                 try {
                     TokensDTO tokens = spotifyAuth.getNewAccessToken(cookie.getRefreshTokenCookie().getValue());
-
-                    cookieService.setCookie(response, tokens);
+                    cookieService.setCookieAccessToken(response, tokens);
                 } catch (Exception e) {
-                    response.sendRedirect(spotifyAuth.authorize());
+                    response.sendRedirect("/api/login");
+                    return;
                 }
-            }
-            else {
-                response.sendRedirect(spotifyAuth.authorize());
+            } else {
+                response.sendRedirect("/api/login");
+                return;
             }
         }
+
         filterChain.doFilter(request, response);
     }
+
 
 }

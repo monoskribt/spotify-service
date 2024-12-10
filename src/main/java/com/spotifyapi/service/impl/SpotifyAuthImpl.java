@@ -16,6 +16,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import static se.michaelthelin.spotify.enums.AuthorizationScope.*;
+
 
 @Service
 @RequiredArgsConstructor
@@ -26,8 +28,13 @@ public class SpotifyAuthImpl implements SpotifyAuth {
     @Override
     public String authorize() {
         return spotifyApi.authorizationCodeUri()
-                .scope(AuthorizationScope.USER_READ_EMAIL,
-                        AuthorizationScope.USER_TOP_READ)
+                .scope(USER_LIBRARY_READ,
+                        USER_LIBRARY_MODIFY,
+                        USER_FOLLOW_READ,
+                        USER_FOLLOW_MODIFY,
+                        PLAYLIST_MODIFY_PRIVATE,
+                        PLAYLIST_MODIFY_PUBLIC,
+                        USER_READ_EMAIL)
                 .show_dialog(true)
                 .build()
                 .execute()
@@ -39,6 +46,7 @@ public class SpotifyAuthImpl implements SpotifyAuth {
         try {
 
             AuthorizationCodeCredentials credentials = spotifyApi.authorizationCode(code).build().execute();
+
             spotifyApi.setAccessToken(credentials.getAccessToken());
             spotifyApi.setRefreshToken(credentials.getRefreshToken());
 
@@ -61,7 +69,7 @@ public class SpotifyAuthImpl implements SpotifyAuth {
 
             spotifyApi.setAccessToken(credentials.getAccessToken());
 
-            return new TokensDTO(credentials.getAccessToken(), refreshToken);
+            return new TokensDTO(spotifyApi.getAccessToken(), refreshToken);
 
         } catch (IOException | SpotifyWebApiException | ParseException e) {
             e.printStackTrace();
