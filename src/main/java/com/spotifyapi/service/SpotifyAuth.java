@@ -2,9 +2,6 @@ package com.spotifyapi.service;
 
 
 import com.spotifyapi.dto.TokensDTO;
-import se.michaelthelin.spotify.model_objects.credentials.AuthorizationCodeCredentials;
-
-import java.util.List;
 
 public interface SpotifyAuth {
 
@@ -12,4 +9,5 @@ public interface SpotifyAuth {
 
     TokensDTO getAuthorizationTokens(String code);
 
+    TokensDTO getNewAccessToken(String refreshToken);
 }
