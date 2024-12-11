@@ -25,11 +25,6 @@ public class TokenValidation extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
-        if (request.getRequestURI().equals("/api/login") || request.getRequestURI().equals("/api/profile")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
         CookieDTO cookie = cookieService.getCookie(request);
 
         if (cookie.getAccessTokenCookie() == null) {
@@ -51,4 +46,8 @@ public class TokenValidation extends OncePerRequestFilter {
     }
 
 
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        return request.getRequestURI().equals("/api/login") || request.getRequestURI().equals("/api/profile");
+    }
 }

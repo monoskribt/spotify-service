@@ -23,7 +23,7 @@ public class CookieServiceImpl implements CookieService {
     public void setCookieAccessToken(HttpServletResponse response, TokensDTO tokens) {
         Cookie accessToken = new Cookie("access_token", tokens.getAccessToken());
 
-        accessToken.setMaxAge(ConstantTimeForCookie.TIME_FOR_ACCESS_TOKEN_COOKIE);
+        accessToken.setMaxAge(ConstantTimeForCookie.ONE_HOUR);
         accessToken.setPath("/");
 
         response.addCookie(accessToken);
@@ -33,7 +33,7 @@ public class CookieServiceImpl implements CookieService {
     public void setCookieRefreshToken(HttpServletResponse response, TokensDTO tokens) {
         Cookie refreshToken = new Cookie("refresh_token", tokens.getRefreshToken());
 
-        refreshToken.setMaxAge(ConstantTimeForCookie.TIME_FOR_REFRESH_TOKEN_COOKIE);
+        refreshToken.setMaxAge(ConstantTimeForCookie.ONE_WEEK);
         refreshToken.setPath("/");
 
         response.addCookie(refreshToken);

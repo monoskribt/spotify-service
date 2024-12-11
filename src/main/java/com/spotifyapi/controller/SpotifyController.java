@@ -10,13 +10,13 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/spotify/")
+@RequestMapping("/api/spotify")
 @AllArgsConstructor
 public class SpotifyController {
 
     private final SpotifyService spotifyService;
 
-    @GetMapping("artist")
+    @GetMapping("/artist")
     public List<SpotifyArtist> getMyArtist() {
         return spotifyService.getFollowedArtist();
     }
