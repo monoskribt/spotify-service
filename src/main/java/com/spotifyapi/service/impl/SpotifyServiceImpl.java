@@ -2,7 +2,7 @@ package com.spotifyapi.service.impl;
 
 
 import com.spotifyapi.model.SpotifyArtist;
-import com.spotifyapi.model.SpotifyRealises;
+import com.spotifyapi.model.SpotifyReleases;
 import com.spotifyapi.service.SpotifyService;
 import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
@@ -43,10 +43,10 @@ public class SpotifyServiceImpl implements SpotifyService {
 
     @Override
     @SneakyThrows
-    public List<SpotifyRealises> getRealises() {
+    public List<SpotifyReleases> getReleases() {
         List<SpotifyArtist> artists = getFollowedArtist();
 
-        List<SpotifyRealises> listOfAlbums = new ArrayList<>();
+        List<SpotifyReleases> listOfAlbums = new ArrayList<>();
 
         LocalDate sixMothAgo = LocalDate.now().minusMonths(6);
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -63,14 +63,14 @@ public class SpotifyServiceImpl implements SpotifyService {
                         return releaseDate.isAfter(sixMothAgo);
                     })
                     .forEach(el -> {
-                        SpotifyRealises realises = new SpotifyRealises();
-                        realises.setId(el.getId());
-                        realises.setNameOfGroup(Arrays.stream(el.getArtists())
+                        SpotifyReleases releases = new SpotifyReleases();
+                        releases.setId(el.getId());
+                        releases.setNameOfGroup(Arrays.stream(el.getArtists())
                                 .map(ArtistSimplified::getName)
                                 .collect(Collectors.joining(", ")));
-                        realises.setTitle(el.getName());
-                        realises.setDate(el.getReleaseDate());
-                        listOfAlbums.add(realises);
+                        releases.setTitle(el.getName());
+                        releases.setDate(el.getReleaseDate());
+                        listOfAlbums.add(releases);
                     });
         }
         return listOfAlbums;

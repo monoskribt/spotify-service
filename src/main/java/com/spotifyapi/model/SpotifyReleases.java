@@ -6,7 +6,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class SpotifyRealises {
+public class SpotifyReleases {
 
     String id;
     String nameOfGroup;
