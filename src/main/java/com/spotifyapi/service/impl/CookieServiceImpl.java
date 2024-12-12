@@ -1,14 +1,13 @@
 package com.spotifyapi.service.impl;
 
+import com.spotifyapi.constant.ConstantTimeForCookie;
 import com.spotifyapi.dto.CookieDTO;
 import com.spotifyapi.dto.TokensDTO;
 import com.spotifyapi.service.CookieService;
-import com.spotifyapi.service.SpotifyAuth;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.AllArgsConstructor;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -17,21 +16,27 @@ import java.util.Optional;
 @AllArgsConstructor
 public class CookieServiceImpl implements CookieService {
 
-    private final SpotifyAuth spotifyAuth;
+
+
 
     @Override
-    public void setCookie(HttpServletResponse response, TokensDTO tokens) {
-        Cookie cookieAccessToken = new Cookie("access_token", tokens.getAccessToken());
-        Cookie cookieRefreshToken = new Cookie("refresh_token", tokens.getRefreshToken());
+    public void setCookieAccessToken(HttpServletResponse response, TokensDTO tokens) {
+        Cookie accessToken = new Cookie("access_token", tokens.getAccessToken());
 
-        cookieAccessToken.setMaxAge(60 * 60);
-        cookieRefreshToken.setMaxAge(7 * 24 * 60 * 60);
+        accessToken.setMaxAge(ConstantTimeForCookie.ONE_HOUR);
+        accessToken.setPath("/");
 
-        cookieAccessToken.setPath("/");
-        cookieRefreshToken.setPath("/");
+        response.addCookie(accessToken);
+    }
 
-        response.addCookie(cookieAccessToken);
-        response.addCookie(cookieRefreshToken);
+    @Override
+    public void setCookieRefreshToken(HttpServletResponse response, TokensDTO tokens) {
+        Cookie refreshToken = new Cookie("refresh_token", tokens.getRefreshToken());
+
+        refreshToken.setMaxAge(ConstantTimeForCookie.ONE_WEEK);
+        refreshToken.setPath("/");
+
+        response.addCookie(refreshToken);
     }
 
     @Override

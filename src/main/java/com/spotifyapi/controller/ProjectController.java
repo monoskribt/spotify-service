@@ -34,8 +34,9 @@ public class ProjectController {
     public String getProfile(@RequestParam String code, HttpServletResponse response) {
         TokensDTO tokens = spotifyAuth.getAuthorizationTokens(code);
 
-        cookieService.setCookie(response, tokens);
-        userService.saveUserData(tokens);
+        cookieService.setCookieAccessToken(response, tokens);
+        cookieService.setCookieRefreshToken(response, tokens);
+
         return "User profile saved successfully!";
     }
 

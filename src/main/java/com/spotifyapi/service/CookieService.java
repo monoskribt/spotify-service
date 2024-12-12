@@ -8,7 +8,9 @@ import jakarta.servlet.http.HttpServletResponse;
 
 public interface CookieService {
 
-    void setCookie(HttpServletResponse response, TokensDTO tokens);
+    void setCookieAccessToken(HttpServletResponse response, TokensDTO tokens);
+
+    void setCookieRefreshToken(HttpServletResponse response, TokensDTO tokens);
 
     CookieDTO getCookie(HttpServletRequest request);
 }
