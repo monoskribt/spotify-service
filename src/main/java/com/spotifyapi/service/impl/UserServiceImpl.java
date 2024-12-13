@@ -6,6 +6,7 @@ import com.spotifyapi.model.User;
 import com.spotifyapi.repository.UserRepository;
 import com.spotifyapi.service.UserService;
 import lombok.AllArgsConstructor;
+import lombok.SneakyThrows;
 import org.apache.hc.core5.http.ParseException;
 import org.springframework.stereotype.Service;
 import se.michaelthelin.spotify.SpotifyApi;

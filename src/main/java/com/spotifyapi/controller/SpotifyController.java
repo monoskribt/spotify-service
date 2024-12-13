@@ -1,12 +1,13 @@
 package com.spotifyapi.controller;
 
 import com.spotifyapi.model.SpotifyArtist;
-import com.spotifyapi.model.SpotifyReleases;
 import com.spotifyapi.service.SpotifyService;
 import lombok.AllArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
+import se.michaelthelin.spotify.model_objects.specification.PlaylistSimplified;
 
 import java.util.List;
 
@@ -23,8 +24,13 @@ public class SpotifyController {
     }
 
     @GetMapping("/release")
-    public List<SpotifyReleases> getReleasesByLastSixMonth() {
+    public List<AlbumSimplified> getReleasesByLastSixMonth() {
         return spotifyService.getReleases();
+    }
+
+    @GetMapping("/my-playlists")
+    private List<PlaylistSimplified> getMyPlaylists() {
+        return spotifyService.getOfUserPlaylists();
     }
 
 }

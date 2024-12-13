@@ -2,24 +2,19 @@ package com.spotifyapi.service.impl;
 
 
 import com.spotifyapi.model.SpotifyArtist;
-import com.spotifyapi.model.SpotifyReleases;
 import com.spotifyapi.service.SpotifyService;
+import com.spotifyapi.service.UserService;
 import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
 import org.springframework.stereotype.Service;
 import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.enums.ModelObjectType;
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
-import se.michaelthelin.spotify.model_objects.specification.ArtistSimplified;
-import se.michaelthelin.spotify.model_objects.specification.Paging;
+import se.michaelthelin.spotify.model_objects.specification.PlaylistSimplified;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
-import java.util.stream.Collectors;
+import java.util.*;
 
 @Service
 @AllArgsConstructor
@@ -44,39 +39,45 @@ public class SpotifyServiceImpl implements SpotifyService {
 
     @Override
     @SneakyThrows
-    public List<SpotifyReleases> getReleases() {
+    public List<AlbumSimplified> getReleases() {
         List<SpotifyArtist> artists = getFollowedArtist();
 
-        List<SpotifyReleases> listOfAlbums = new ArrayList<>();
+        List<AlbumSimplified> listOfAlbums = new ArrayList<>();
 
         LocalDate sixMothAgo = LocalDate.now().minusMonths(6);
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
         for(SpotifyArtist artist : artists) {
-            Paging<AlbumSimplified> album = spotifyApi
+            var album = Arrays.stream(spotifyApi
                     .getArtistsAlbums(artist.getId())
                     .build()
-                    .execute();
+                    .execute()
+                    .getItems())
+                            .filter(date -> {
+                                LocalDate releaseDate = LocalDate.parse(date.getReleaseDate(), formatter);
+                                return releaseDate.isAfter(sixMothAgo);
+                            }).toList();
 
-            Arrays.stream(album.getItems())
-                    .filter(items -> {
-                        LocalDate releaseDate = LocalDate.parse(items.getReleaseDate(), formatter);
-                        return releaseDate.isAfter(sixMothAgo);
-                    })
-                    .limit(7)
-                    .forEach(el -> {
-                        SpotifyReleases releases = new SpotifyReleases();
-                        releases.setId(el.getId());
-                        releases.setNameOfGroup(Arrays.stream(el.getArtists())
-                                .map(ArtistSimplified::getName)
-                                .collect(Collectors.joining(", ")));
-                        releases.setTitle(el.getName());
-                        releases.setDate(el.getReleaseDate());
-                        listOfAlbums.add(releases);
-                    });
+            listOfAlbums.addAll(album);
         }
-        return listOfAlbums.stream()
-                .sorted(Comparator.comparing(SpotifyReleases::getDate).thenComparing(SpotifyReleases::getNameOfGroup)).collect(Collectors.toList());
+
+        return listOfAlbums
+                .stream()
+                .sorted(Comparator.comparing(AlbumSimplified::getReleaseDate))
+                .toList();
+    }
+
+    @SneakyThrows
+    @Override
+    public List<PlaylistSimplified> getOfUserPlaylists() {
+        return Arrays.stream(spotifyApi.getListOfCurrentUsersPlaylists()
+                .build()
+                .execute().getItems()).toList();
+    }
+
+    @Override
+    public void saveReleasesToMyPlaylist(String playlistId) {
+
     }
 
 
