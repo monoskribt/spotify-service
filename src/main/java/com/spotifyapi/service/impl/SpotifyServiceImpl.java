@@ -17,6 +17,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -62,6 +63,7 @@ public class SpotifyServiceImpl implements SpotifyService {
                         LocalDate releaseDate = LocalDate.parse(items.getReleaseDate(), formatter);
                         return releaseDate.isAfter(sixMothAgo);
                     })
+                    .limit(7)
                     .forEach(el -> {
                         SpotifyReleases releases = new SpotifyReleases();
                         releases.setId(el.getId());
@@ -73,7 +75,8 @@ public class SpotifyServiceImpl implements SpotifyService {
                         listOfAlbums.add(releases);
                     });
         }
-        return listOfAlbums;
+        return listOfAlbums.stream()
+                .sorted(Comparator.comparing(SpotifyReleases::getDate).thenComparing(SpotifyReleases::getNameOfGroup)).collect(Collectors.toList());
     }
 
 
