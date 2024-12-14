@@ -1,16 +1,15 @@
 package com.spotifyapi.service.impl;
 
 
+import com.google.gson.JsonArray;
 import com.spotifyapi.model.SpotifyArtist;
 import com.spotifyapi.service.SpotifyService;
-import com.spotifyapi.service.UserService;
 import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
 import org.springframework.stereotype.Service;
 import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.enums.ModelObjectType;
-import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
-import se.michaelthelin.spotify.model_objects.specification.PlaylistSimplified;
+import se.michaelthelin.spotify.model_objects.specification.*;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -75,9 +74,29 @@ public class SpotifyServiceImpl implements SpotifyService {
                 .execute().getItems()).toList();
     }
 
+    @SneakyThrows
     @Override
-    public void saveReleasesToMyPlaylist(String playlistId) {
+    public void saveReleasesToPlaylistById(String playlistId) {
+        List<AlbumSimplified> releases = getReleases();
+        List<String> trackUrl = new ArrayList<>();
 
+        for(AlbumSimplified album : releases) {
+            var track = spotifyApi.getAlbumsTracks(album.getId())
+                    .build()
+                    .execute()
+                    .getItems();
+            Arrays.stream(track).map(TrackSimplified::getUri)
+                    .forEach(trackUrl::add);
+        }
+
+        spotifyApi.addItemsToPlaylist(playlistId, trackUrl.toArray(new String[0]))
+                .build()
+                .execute();
+    }
+
+    @Override
+    public void deleteAllOfTracksFromPlaylistById(String playlistId) {
+        //TODO
     }
 
 

@@ -14,6 +14,7 @@ public interface SpotifyService {
 
     List<PlaylistSimplified> getOfUserPlaylists();
 
-    void saveReleasesToMyPlaylist(String playlistId);
+    void saveReleasesToPlaylistById(String playlistId);
 
+    void deleteAllOfTracksFromPlaylistById(String playlistId);
 }

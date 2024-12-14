@@ -3,9 +3,8 @@ package com.spotifyapi.controller;
 import com.spotifyapi.model.SpotifyArtist;
 import com.spotifyapi.service.SpotifyService;
 import lombok.AllArgsConstructor;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
 import se.michaelthelin.spotify.model_objects.specification.PlaylistSimplified;
 
@@ -31,6 +30,16 @@ public class SpotifyController {
     @GetMapping("/my-playlists")
     private List<PlaylistSimplified> getMyPlaylists() {
         return spotifyService.getOfUserPlaylists();
+    }
+
+    @PostMapping("/save-releases")
+    public ResponseEntity<String> saveReleasesToPlaylist(@RequestParam ("playlistId") String playlistId) {
+        try {
+            spotifyService.saveReleasesToPlaylistById(playlistId);
+            return ResponseEntity.ok("Successfully added");
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Something is wrong: " + e.getMessage());
+        }
     }
 
 }
