@@ -42,4 +42,14 @@ public class SpotifyController {
         }
     }
 
+    @DeleteMapping("/delete-all-from-playlist")
+    public ResponseEntity<String> deleteAllItemsFromPlaylistById(@RequestParam ("playlistId") String playlistId) {
+        try {
+            spotifyService.deleteAllOfTracksFromPlaylistById(playlistId);
+            return ResponseEntity.ok("Successfully removed");
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Something is wrong: " + e.getMessage());
+        }
+    }
+
 }
