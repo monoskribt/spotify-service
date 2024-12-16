@@ -110,12 +110,12 @@ public class SpotifyServiceImpl implements SpotifyService {
 
         optionalOfPlaylistTracks.ifPresentOrElse(tracks -> {
 
-                    JsonArray removeTracks = new JsonArray();
-                    Arrays.stream(tracks).forEach(track -> {
-                        JsonObject trackObj = new JsonObject();
-                        trackObj.addProperty("uri", track.getTrack().getUri());
-                        removeTracks.add(trackObj);
-                    });
+            JsonArray removeTracks = new JsonArray();
+            Arrays.stream(tracks).forEach(track -> {
+                JsonObject trackObj = new JsonObject();
+                trackObj.addProperty("uri", track.getTrack().getUri());
+                removeTracks.add(trackObj);
+            });
 
             try {
                 spotifyApi.removeItemsFromPlaylist(playlistId, removeTracks).build().execute();

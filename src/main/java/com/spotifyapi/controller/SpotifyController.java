@@ -3,6 +3,7 @@ package com.spotifyapi.controller;
 import com.spotifyapi.model.SpotifyArtist;
 import com.spotifyapi.service.SpotifyService;
 import lombok.AllArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
@@ -38,7 +39,7 @@ public class SpotifyController {
             spotifyService.saveReleasesToPlaylistById(playlistId);
             return ResponseEntity.ok("Successfully added");
         } catch (Exception e) {
-            return ResponseEntity.status(500).body("Something is wrong: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Something is wrong: " + e.getMessage());
         }
     }
 
@@ -48,7 +49,7 @@ public class SpotifyController {
             spotifyService.deleteAllOfTracksFromPlaylistById(playlistId);
             return ResponseEntity.ok("Successfully removed");
         } catch (Exception e) {
-            return ResponseEntity.status(500).body("Something is wrong: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Something is wrong: " + e.getMessage());
         }
     }
 
