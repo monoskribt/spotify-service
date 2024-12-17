@@ -16,7 +16,7 @@ import java.util.List;
 @AllArgsConstructor
 public class SpotifyController {
 
-    private final SpotifyService spotifyService;
+    private SpotifyService spotifyService;
 
     @GetMapping("/artist")
     public List<SpotifyArtist> getMyArtist() {
@@ -29,7 +29,7 @@ public class SpotifyController {
     }
 
     @GetMapping("/my-playlists")
-    private List<PlaylistSimplified> getMyPlaylists() {
+    public List<PlaylistSimplified> getMyPlaylists() {
         return spotifyService.getOfUserPlaylists();
     }
 

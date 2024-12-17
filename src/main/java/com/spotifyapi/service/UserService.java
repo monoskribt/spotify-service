@@ -6,4 +6,7 @@ public interface UserService {
 
     void saveUserData(TokensDTO tokens);
 
+    String getCurrentUsername();
+
+    String getCurrentId();
 }

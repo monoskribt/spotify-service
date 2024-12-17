@@ -37,4 +37,18 @@ public class UserServiceImpl implements UserService {
             e.printStackTrace();
         }
     }
+
+    @SneakyThrows
+    @Override
+    public String getCurrentUsername() {
+        var profile = spotifyApi.getCurrentUsersProfile().build().execute();
+        return profile.getDisplayName();
+    }
+
+    @SneakyThrows
+    @Override
+    public String getCurrentId() {
+        var profile = spotifyApi.getCurrentUsersProfile().build().execute();
+        return profile.getId();
+    }
 }
