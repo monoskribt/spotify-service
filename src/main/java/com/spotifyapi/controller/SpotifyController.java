@@ -24,8 +24,8 @@ public class SpotifyController {
     }
 
     @GetMapping("/release")
-    public List<AlbumSimplified> getReleasesByLastSixMonth() {
-        return spotifyService.getReleases();
+    public List<AlbumSimplified> getReleasesByLastSixMonth(@RequestParam ("releaseOfDay") Long releaseOfDay) {
+        return spotifyService.getReleases(releaseOfDay);
     }
 
     @GetMapping("/my-playlists")
@@ -34,9 +34,10 @@ public class SpotifyController {
     }
 
     @PostMapping("/save-releases")
-    public ResponseEntity<String> saveReleasesToPlaylist(@RequestParam ("playlistId") String playlistId) {
+    public ResponseEntity<String> saveReleasesToPlaylist(@RequestParam ("playlistId") String playlistId,
+                                                         @RequestParam ("releaseOfDay") Long releaseOfDay) {
         try {
-            spotifyService.saveReleasesToPlaylistById(playlistId);
+            spotifyService.saveReleasesToPlaylistById(playlistId, releaseOfDay);
             return ResponseEntity.ok("Successfully added");
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Something is wrong: " + e.getMessage());

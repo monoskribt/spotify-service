@@ -42,12 +42,12 @@ public class SpotifyServiceImpl implements SpotifyService {
 
     @Override
     @SneakyThrows
-    public List<AlbumSimplified> getReleases() {
+    public List<AlbumSimplified> getReleases(Long releaseOfDay) {
         List<SpotifyArtist> artists = getFollowedArtist();
 
         List<AlbumSimplified> listOfAlbums = new ArrayList<>();
 
-        LocalDate sixMothAgo = LocalDate.now().minusMonths(6);
+        LocalDate sixMothAgo = LocalDate.now().minusDays(releaseOfDay);
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
         for(SpotifyArtist artist : artists) {
@@ -80,8 +80,8 @@ public class SpotifyServiceImpl implements SpotifyService {
 
     @SneakyThrows
     @Override
-    public void saveReleasesToPlaylistById(String playlistId) {
-        List<AlbumSimplified> releases = getReleases();
+    public void saveReleasesToPlaylistById(String playlistId, Long releaseOfDay) {
+        List<AlbumSimplified> releases = getReleases(releaseOfDay);
         List<String> trackUrl = new ArrayList<>();
 
         for(AlbumSimplified album : releases) {

@@ -10,11 +10,11 @@ public interface SpotifyService {
 
     List<SpotifyArtist> getFollowedArtist();
 
-    List<AlbumSimplified> getReleases();
+    List<AlbumSimplified> getReleases(Long releaseOfDay);
 
     List<PlaylistSimplified> getOfUserPlaylists();
 
-    void saveReleasesToPlaylistById(String playlistId);
+    void saveReleasesToPlaylistById(String playlistId, Long releaseOfDay);
 
     void deleteAllOfTracksFromPlaylistById(String playlistId);
 }
