@@ -7,14 +7,11 @@ import com.spotifyapi.model.SpotifyArtist;
 import com.spotifyapi.service.SpotifyService;
 import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
-import org.apache.hc.core5.http.ParseException;
 import org.springframework.stereotype.Service;
 import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.enums.ModelObjectType;
-import se.michaelthelin.spotify.exceptions.SpotifyWebApiException;
 import se.michaelthelin.spotify.model_objects.specification.*;
 
-import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;

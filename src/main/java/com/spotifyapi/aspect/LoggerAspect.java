@@ -23,11 +23,10 @@ public class LoggerAspect {
     private final LoggerRepository loggerRepository;
     private final UserService userService;
 
-    @AfterReturning(pointcut = "execution(* com.spotifyapi.controller.SpotifyController.*(..))", returning = "result")
-    public void afterReturning(JoinPoint joinPoint, Object result) {
+    @AfterReturning(pointcut = "execution(* com.spotifyapi.controller.SpotifyController.*(..))")
+    public void afterReturning(JoinPoint joinPoint) {
         String methodName = joinPoint.getSignature().getName();
         String listOfParam = Arrays.toString(joinPoint.getArgs());
-        String returnValue = (result != null) ? result.toString() : "null";
 
         Logger logger = new Logger();
         logger.setUsername(userService.getCurrentUsername());
@@ -35,7 +34,7 @@ public class LoggerAspect {
         logger.setMethodName(methodName);
         logger.setParameters(listOfParam);
         logger.setDateTime(LocalDateTime.now());
-        logger.setMessage("Successfully. Returned: " + returnValue);
+        logger.setMessage("Successfully");
         logger.setStatus("SUCCESS");
 
         loggerRepository.save(logger);

@@ -37,6 +37,10 @@ public class ProjectController {
         cookieService.setCookieAccessToken(response, tokens);
         cookieService.setCookieRefreshToken(response, tokens);
 
+        if(!userService.isAlreadyExist()) {
+            userService.saveUserOfData(tokens);
+        }
+
         return "User profile saved successfully!";
     }
 
