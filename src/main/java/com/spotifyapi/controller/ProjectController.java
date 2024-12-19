@@ -39,9 +39,11 @@ public class ProjectController {
 
         if(!userService.isAlreadyExist()) {
             userService.saveUserOfData(tokens);
+            return "User profile saved successfully!";
         }
-
-        return "User profile saved successfully!";
+        else {
+            return "Welcome back!";
+        }
     }
 
 

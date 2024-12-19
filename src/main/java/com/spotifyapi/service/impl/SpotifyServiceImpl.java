@@ -4,7 +4,10 @@ package com.spotifyapi.service.impl;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.spotifyapi.model.SpotifyArtist;
+import com.spotifyapi.model.SpotifyUserPlaylist;
+import com.spotifyapi.repository.PlaylistRepository;
 import com.spotifyapi.service.SpotifyService;
+import com.spotifyapi.service.SpotifyTrackService;
 import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
 import org.springframework.stereotype.Service;
@@ -21,6 +24,8 @@ import java.util.*;
 public class SpotifyServiceImpl implements SpotifyService {
 
     private final SpotifyApi spotifyApi;
+    private final PlaylistRepository playlistRepository;
+    private final SpotifyTrackService spotifyTrackService;
 
     @Override
     @SneakyThrows
@@ -81,13 +86,19 @@ public class SpotifyServiceImpl implements SpotifyService {
         List<AlbumSimplified> releases = getReleases(releaseOfDay);
         List<String> trackUrl = new ArrayList<>();
 
-        for(AlbumSimplified album : releases) {
-            var track = spotifyApi.getAlbumsTracks(album.getId())
+        Optional<SpotifyUserPlaylist> playlist = playlistRepository.findById(playlistId);
+
+        for (AlbumSimplified album : releases) {
+            var tracks = spotifyApi.getAlbumsTracks(album.getId())
                     .build()
                     .execute()
                     .getItems();
-            Arrays.stream(track).map(TrackSimplified::getUri)
-                    .forEach(trackUrl::add);
+
+            for (TrackSimplified track : tracks) {
+                trackUrl.add(track.getUri());
+
+                spotifyTrackService.saveTracks(track, playlist.get());
+            }
         }
 
         spotifyApi.addItemsToPlaylist(playlistId, trackUrl.toArray(new String[0]))

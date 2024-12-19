@@ -15,7 +15,6 @@ public class SpotifyTrackFromPlaylist {
     @Id
     private String id;
 
-    private String spotifyTrackId;
     private String name;
     private String externalUrl;
     private String artistName;

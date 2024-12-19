@@ -9,6 +9,6 @@ import java.util.UUID;
 @Repository
 public interface TrackRepository extends JpaRepository<SpotifyTrackFromPlaylist, String> {
 
-
+    boolean existsByIdAndUserPlaylistId(String trackId, String playlistId);
 
 }

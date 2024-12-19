@@ -4,9 +4,9 @@ package com.spotifyapi.service.impl;
 import com.spotifyapi.dto.TokensDTO;
 import com.spotifyapi.model.SpotifyUserPlaylist;
 import com.spotifyapi.model.User;
-import com.spotifyapi.repository.PlaylistRepository;
 import com.spotifyapi.repository.UserRepository;
-import com.spotifyapi.service.PlaylistService;
+import com.spotifyapi.service.SpotifyPlaylistService;
+import com.spotifyapi.service.SpotifyTrackService;
 import com.spotifyapi.service.UserService;
 import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
@@ -15,6 +15,8 @@ import org.springframework.stereotype.Service;
 import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.exceptions.SpotifyWebApiException;
 import se.michaelthelin.spotify.model_objects.specification.PlaylistSimplified;
+import se.michaelthelin.spotify.model_objects.specification.PlaylistTrack;
+import se.michaelthelin.spotify.model_objects.specification.TrackSimplified;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -26,8 +28,8 @@ public class UserServiceImpl implements UserService {
 
     private final SpotifyApi spotifyApi;
     private final UserRepository userRepository;
-    private final PlaylistService playlistService;
-    private final PlaylistRepository playlistRepository;
+    private final SpotifyPlaylistService playlistService;
+    private final SpotifyTrackService spotifyTrackService;
 
     @Override
     public void saveUserOfData(TokensDTO tokens) {
@@ -48,21 +50,26 @@ public class UserServiceImpl implements UserService {
                     .execute().getItems())
                     .toList();
 
-            for(PlaylistSimplified playlist : playlists) {
-                if(!playlistService.isAlreadyExistById(playlist.getId())) {
-                    SpotifyUserPlaylist spotifyUserPlaylist = new SpotifyUserPlaylist();
+            for (PlaylistSimplified playlist : playlists) {
 
-                    spotifyUserPlaylist.setId(playlist.getId());
-                    spotifyUserPlaylist.setName(playlist.getName());
-                    spotifyUserPlaylist.setExternalUrl(playlist.getExternalUrls().get("spotify"));
-                    spotifyUserPlaylist.setOwnerName(playlist.getOwner().getDisplayName());
-                    spotifyUserPlaylist.setSnapshotId(playlist.getSnapshotId());
+                SpotifyUserPlaylist spotifyUserPlaylist = playlistService.savePlaylistToDatabase(playlist, newUser);
 
-                    spotifyUserPlaylist.setUser(newUser);
+                List<PlaylistTrack> playlistTracks = Arrays.stream(
+                        spotifyApi.getPlaylistsItems(playlist.getId())
+                                .build()
+                                .execute()
+                                .getItems())
+                        .toList();
 
-                    playlistRepository.save(spotifyUserPlaylist);
+                for (PlaylistTrack trackItem : playlistTracks) {
+                    if (trackItem.getTrack() != null) {
+                        TrackSimplified track = (TrackSimplified) trackItem.getTrack();
+
+                        spotifyTrackService.saveTracks(track, spotifyUserPlaylist);
+                    }
                 }
             }
+
 
         } catch (IOException | SpotifyWebApiException | ParseException e) {
             e.printStackTrace();
