@@ -4,10 +4,12 @@ package com.spotifyapi.service.impl;
 import com.spotifyapi.dto.TokensDTO;
 import com.spotifyapi.model.SpotifyUserPlaylist;
 import com.spotifyapi.model.User;
+import com.spotifyapi.repository.PlaylistRepository;
 import com.spotifyapi.repository.UserRepository;
 import com.spotifyapi.service.SpotifyPlaylistService;
 import com.spotifyapi.service.SpotifyTrackService;
 import com.spotifyapi.service.UserService;
+import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
 import org.apache.hc.core5.http.ParseException;
@@ -16,7 +18,7 @@ import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.exceptions.SpotifyWebApiException;
 import se.michaelthelin.spotify.model_objects.specification.PlaylistSimplified;
 import se.michaelthelin.spotify.model_objects.specification.PlaylistTrack;
-import se.michaelthelin.spotify.model_objects.specification.TrackSimplified;
+import se.michaelthelin.spotify.model_objects.specification.Track;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -30,7 +32,9 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final SpotifyPlaylistService playlistService;
     private final SpotifyTrackService spotifyTrackService;
+    private final PlaylistRepository playlistRepository;
 
+    @Transactional
     @Override
     public void saveUserOfData(TokensDTO tokens) {
         try {
@@ -52,9 +56,12 @@ public class UserServiceImpl implements UserService {
 
             for (PlaylistSimplified playlist : playlists) {
 
-                SpotifyUserPlaylist spotifyUserPlaylist = playlistService.savePlaylistToDatabase(playlist, newUser);
+                playlistService.savePlaylistToDatabase(playlist, newUser);
 
-                List<PlaylistTrack> playlistTracks = Arrays.stream(
+                SpotifyUserPlaylist spotifyUserPlaylist = playlistRepository.findById(playlist.getId())
+                        .orElseThrow(() -> new IllegalStateException("Playlist not found after save"));
+
+                var playlistTracks = Arrays.stream(
                         spotifyApi.getPlaylistsItems(playlist.getId())
                                 .build()
                                 .execute()
@@ -62,12 +69,9 @@ public class UserServiceImpl implements UserService {
                         .toList();
 
                 for (PlaylistTrack trackItem : playlistTracks) {
-                    if (trackItem.getTrack() != null) {
-                        TrackSimplified track = (TrackSimplified) trackItem.getTrack();
-
-                        spotifyTrackService.saveTracks(track, spotifyUserPlaylist);
-                    }
+                    spotifyTrackService.saveTracks((Track) trackItem.getTrack(), spotifyUserPlaylist);
                 }
+
             }
 
 

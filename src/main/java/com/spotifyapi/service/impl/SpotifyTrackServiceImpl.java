@@ -7,6 +7,7 @@ import com.spotifyapi.repository.TrackRepository;
 import com.spotifyapi.service.SpotifyTrackService;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
+import se.michaelthelin.spotify.model_objects.specification.Track;
 import se.michaelthelin.spotify.model_objects.specification.TrackSimplified;
 
 import java.util.Optional;
@@ -19,7 +20,7 @@ public class SpotifyTrackServiceImpl implements SpotifyTrackService {
     private final PlaylistRepository playlistRepository;
 
     @Override
-    public void saveTracks(TrackSimplified track, SpotifyUserPlaylist playlist) {
+    public void saveTracks(Track track, SpotifyUserPlaylist playlist) {
         SpotifyTrackFromPlaylist trackFromPlaylist = new SpotifyTrackFromPlaylist();
         Optional<SpotifyUserPlaylist> spotifyUserPlaylist = playlistRepository.findById(playlist.getId());
 
@@ -40,4 +41,16 @@ public class SpotifyTrackServiceImpl implements SpotifyTrackService {
     public boolean isAlreadyExist(String trackId, String playlistId) {
         return trackRepository.existsByIdAndUserPlaylistId(trackId, playlistId);
     }
+
+    @Override
+    public Track convertToTrackFormat(TrackSimplified trackSimplified) {
+        return new Track.Builder()
+                .setId(trackSimplified.getId())
+                .setName(trackSimplified.getName())
+                .setExternalUrls(trackSimplified.getExternalUrls())
+                .setArtists(trackSimplified.getArtists())
+                .build();
+    }
+
+
 }

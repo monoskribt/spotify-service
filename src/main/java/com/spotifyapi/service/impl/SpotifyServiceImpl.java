@@ -95,9 +95,10 @@ public class SpotifyServiceImpl implements SpotifyService {
                     .getItems();
 
             for (TrackSimplified track : tracks) {
-                trackUrl.add(track.getUri());
+                Track trackFormat = spotifyTrackService.convertToTrackFormat(track);
+                trackUrl.add(trackFormat.getUri());
 
-                spotifyTrackService.saveTracks(track, playlist.get());
+                spotifyTrackService.saveTracks(trackFormat, playlist.get());
             }
         }
 

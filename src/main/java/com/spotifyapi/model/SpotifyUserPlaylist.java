@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -24,5 +25,8 @@ public class SpotifyUserPlaylist {
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
+
+    @OneToMany(mappedBy = "userPlaylist", cascade = CascadeType.ALL)
+    private List<SpotifyTrackFromPlaylist> tracks;
 
 }
