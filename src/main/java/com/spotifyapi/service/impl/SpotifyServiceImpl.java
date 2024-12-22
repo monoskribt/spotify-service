@@ -4,8 +4,10 @@ package com.spotifyapi.service.impl;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.spotifyapi.model.SpotifyArtist;
+import com.spotifyapi.model.SpotifyTrackFromPlaylist;
 import com.spotifyapi.model.SpotifyUserPlaylist;
 import com.spotifyapi.repository.PlaylistRepository;
+import com.spotifyapi.repository.TrackRepository;
 import com.spotifyapi.service.SpotifyService;
 import com.spotifyapi.service.SpotifyTrackService;
 import lombok.AllArgsConstructor;
@@ -26,6 +28,7 @@ public class SpotifyServiceImpl implements SpotifyService {
     private final SpotifyApi spotifyApi;
     private final PlaylistRepository playlistRepository;
     private final SpotifyTrackService spotifyTrackService;
+    private final TrackRepository trackRepository;
 
     @Override
     @SneakyThrows
@@ -96,9 +99,11 @@ public class SpotifyServiceImpl implements SpotifyService {
 
             for (TrackSimplified track : tracks) {
                 Track trackFormat = spotifyTrackService.convertToTrackFormat(track);
-                trackUrl.add(trackFormat.getUri());
+                if(!spotifyTrackService.isAlreadyExist(track.getId(), playlist.get().getId())) {
+                    trackUrl.add(track.getUri());
 
-                spotifyTrackService.saveTracks(trackFormat, playlist.get());
+                    spotifyTrackService.saveTracks(trackFormat, playlist.get());
+                }
             }
         }
 
@@ -128,6 +133,10 @@ public class SpotifyServiceImpl implements SpotifyService {
 
             try {
                 spotifyApi.removeItemsFromPlaylist(playlistId, removeTracks).build().execute();
+
+                List<SpotifyTrackFromPlaylist> listToRemoveTracks = trackRepository
+                        .findAllByUserPlaylistId(playlistId);
+                trackRepository.deleteAll(listToRemoveTracks);
             } catch (Exception e) {
                 System.out.println("Something is wrong: " + e.getMessage());
             }
