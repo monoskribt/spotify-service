@@ -1,6 +1,7 @@
 package com.spotifyapi.service;
 
 import com.spotifyapi.model.SpotifyArtist;
+import se.michaelthelin.spotify.enums.ReleaseDatePrecision;
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
 import se.michaelthelin.spotify.model_objects.specification.PlaylistSimplified;
 

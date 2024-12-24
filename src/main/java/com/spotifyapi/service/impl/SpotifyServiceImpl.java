@@ -14,6 +14,7 @@ import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
 import org.springframework.stereotype.Service;
 import se.michaelthelin.spotify.SpotifyApi;
+import se.michaelthelin.spotify.enums.AlbumType;
 import se.michaelthelin.spotify.enums.ModelObjectType;
 import se.michaelthelin.spotify.model_objects.specification.*;
 
@@ -145,6 +146,5 @@ public class SpotifyServiceImpl implements SpotifyService {
         () -> System.out.println("Playlist is empty.")
         );
     }
-
 
 }
