@@ -31,6 +31,14 @@ public class SpotifyServiceImpl implements SpotifyService {
     private final SpotifyTrackService spotifyTrackService;
     private final TrackRepository trackRepository;
 
+    @SneakyThrows
+    @Override
+    public List<PlaylistSimplified> getOfUsersPlaylists() {
+        return Arrays.stream(spotifyApi.getListOfCurrentUsersPlaylists()
+                .build()
+                .execute().getItems()).toList();
+    }
+
     @Override
     @SneakyThrows
     public List<SpotifyArtist> getFollowedArtist() {
@@ -48,12 +56,17 @@ public class SpotifyServiceImpl implements SpotifyService {
 
     @Override
     @SneakyThrows
+    public List<AlbumSimplified> getReleases() {
+        return getReleases(null);
+    }
+
+    @Override
+    @SneakyThrows
     public List<AlbumSimplified> getReleases(Long releaseOfDay) {
         List<SpotifyArtist> artists = getFollowedArtist();
 
         List<AlbumSimplified> listOfAlbums = new ArrayList<>();
 
-        LocalDate sixMothAgo = LocalDate.now().minusDays(releaseOfDay);
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
         for(SpotifyArtist artist : artists) {
@@ -64,7 +77,10 @@ public class SpotifyServiceImpl implements SpotifyService {
                     .getItems())
                             .filter(date -> {
                                 LocalDate releaseDate = LocalDate.parse(date.getReleaseDate(), formatter);
-                                return releaseDate.isAfter(sixMothAgo);
+                                return releaseDate.isAfter(
+                                        releaseOfDay == null ? LocalDate.now().minusMonths(1)
+                                                : LocalDate.now().minusDays(releaseOfDay)
+                                );
                             }).toList();
 
             listOfAlbums.addAll(album);
@@ -74,14 +90,6 @@ public class SpotifyServiceImpl implements SpotifyService {
                 .stream()
                 .sorted(Comparator.comparing(AlbumSimplified::getReleaseDate))
                 .toList();
-    }
-
-    @SneakyThrows
-    @Override
-    public List<PlaylistSimplified> getOfUserPlaylists() {
-        return Arrays.stream(spotifyApi.getListOfCurrentUsersPlaylists()
-                .build()
-                .execute().getItems()).toList();
     }
 
     @SneakyThrows

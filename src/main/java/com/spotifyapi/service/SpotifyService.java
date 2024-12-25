@@ -9,11 +9,13 @@ import java.util.List;
 
 public interface SpotifyService {
 
+    List<PlaylistSimplified> getOfUsersPlaylists();
+
     List<SpotifyArtist> getFollowedArtist();
 
-    List<AlbumSimplified> getReleases(Long releaseOfDay);
+    List<AlbumSimplified> getReleases();
 
-    List<PlaylistSimplified> getOfUserPlaylists();
+    List<AlbumSimplified> getReleases(Long releaseOfDay);
 
     void saveReleasesToPlaylistById(String playlistId, Long releaseOfDay);
 
