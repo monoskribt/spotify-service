@@ -1,15 +1,15 @@
 package com.spotifyapi.service;
 
 import com.spotifyapi.model.SpotifyArtist;
-import se.michaelthelin.spotify.enums.ReleaseDatePrecision;
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
 import se.michaelthelin.spotify.model_objects.specification.PlaylistSimplified;
 
 import java.util.List;
+import java.util.Set;
 
 public interface SpotifyService {
 
-    List<PlaylistSimplified> getOfUsersPlaylists();
+    Set<PlaylistSimplified> getOfUsersPlaylists();
 
     List<SpotifyArtist> getFollowedArtist();
 

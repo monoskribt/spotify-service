@@ -3,6 +3,7 @@ package com.spotifyapi.service.impl;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.spotifyapi.mapper.TrackSimplifiedWrapper;
 import com.spotifyapi.model.SpotifyArtist;
 import com.spotifyapi.model.SpotifyTrackFromPlaylist;
 import com.spotifyapi.model.SpotifyUserPlaylist;
@@ -14,13 +15,15 @@ import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
 import org.springframework.stereotype.Service;
 import se.michaelthelin.spotify.SpotifyApi;
-import se.michaelthelin.spotify.enums.AlbumType;
 import se.michaelthelin.spotify.enums.ModelObjectType;
 import se.michaelthelin.spotify.model_objects.specification.*;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.stream.Collectors;
+
+import static com.spotifyapi.constant.ConstantDayForReleases.THIRTY_DAYS;
 
 @Service
 @AllArgsConstructor
@@ -33,10 +36,10 @@ public class SpotifyServiceImpl implements SpotifyService {
 
     @SneakyThrows
     @Override
-    public List<PlaylistSimplified> getOfUsersPlaylists() {
+    public Set<PlaylistSimplified> getOfUsersPlaylists() {
         return Arrays.stream(spotifyApi.getListOfCurrentUsersPlaylists()
                 .build()
-                .execute().getItems()).toList();
+                .execute().getItems()).collect(Collectors.toSet());
     }
 
     @Override
@@ -57,7 +60,7 @@ public class SpotifyServiceImpl implements SpotifyService {
     @Override
     @SneakyThrows
     public List<AlbumSimplified> getReleases() {
-        return getReleases(null);
+        return getReleases(THIRTY_DAYS);
     }
 
     @Override
@@ -77,10 +80,7 @@ public class SpotifyServiceImpl implements SpotifyService {
                     .getItems())
                             .filter(date -> {
                                 LocalDate releaseDate = LocalDate.parse(date.getReleaseDate(), formatter);
-                                return releaseDate.isAfter(
-                                        releaseOfDay == null ? LocalDate.now().minusMonths(1)
-                                                : LocalDate.now().minusDays(releaseOfDay)
-                                );
+                                return releaseDate.isAfter(LocalDate.now().minusDays(releaseOfDay));
                             }).toList();
 
             listOfAlbums.addAll(album);
@@ -97,8 +97,12 @@ public class SpotifyServiceImpl implements SpotifyService {
     public void saveReleasesToPlaylistById(String playlistId, Long releaseOfDay) {
         List<AlbumSimplified> releases = getReleases(releaseOfDay);
         List<String> trackUrl = new ArrayList<>();
+        List<SpotifyTrackFromPlaylist> saveTrackToDB = new ArrayList<>();
 
         Optional<SpotifyUserPlaylist> playlist = playlistRepository.findById(playlistId);
+
+        Set<String> existingTrackIds = spotifyTrackService
+                .getExistingTrackIds(playlist.get().getId());
 
         for (AlbumSimplified album : releases) {
             var tracks = spotifyApi.getAlbumsTracks(album.getId())
@@ -107,14 +111,18 @@ public class SpotifyServiceImpl implements SpotifyService {
                     .getItems();
 
             for (TrackSimplified track : tracks) {
-                Track trackFormat = spotifyTrackService.convertToTrackFormat(track);
-                if(!spotifyTrackService.isAlreadyExist(track.getId(), playlist.get().getId())) {
+                if(track != null && !existingTrackIds.contains(track.getId())) {
                     trackUrl.add(track.getUri());
 
-                    spotifyTrackService.saveTracks(trackFormat, playlist.get());
+                    SpotifyTrackFromPlaylist trackEntity = spotifyTrackService
+                            .convertTrackToTrackDBEntity(new TrackSimplifiedWrapper(track), playlist.get());
+
+                    saveTrackToDB.add(trackEntity);
                 }
             }
         }
+
+        trackRepository.saveAll(saveTrackToDB);
 
         spotifyApi.addItemsToPlaylist(playlistId, trackUrl.toArray(new String[0]))
                 .build()
@@ -143,9 +151,9 @@ public class SpotifyServiceImpl implements SpotifyService {
             try {
                 spotifyApi.removeItemsFromPlaylist(playlistId, removeTracks).build().execute();
 
-                List<SpotifyTrackFromPlaylist> listToRemoveTracks = trackRepository
+                List<SpotifyTrackFromPlaylist> tracksToRemove = trackRepository
                         .findAllByUserPlaylistId(playlistId);
-                trackRepository.deleteAll(listToRemoveTracks);
+                trackRepository.deleteAll(tracksToRemove);
             } catch (Exception e) {
                 System.out.println("Something is wrong: " + e.getMessage());
             }

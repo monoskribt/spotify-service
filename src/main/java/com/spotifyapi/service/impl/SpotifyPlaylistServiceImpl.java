@@ -9,7 +9,6 @@ import lombok.SneakyThrows;
 import org.springframework.stereotype.Service;
 import se.michaelthelin.spotify.model_objects.specification.PlaylistSimplified;
 
-
 @Service
 @AllArgsConstructor
 public class SpotifyPlaylistServiceImpl implements SpotifyPlaylistService {
@@ -25,7 +24,7 @@ public class SpotifyPlaylistServiceImpl implements SpotifyPlaylistService {
 
     @SneakyThrows
     @Override
-    public SpotifyUserPlaylist savePlaylistToDatabase(PlaylistSimplified playlist, User user) {
+    public void savePlaylistToDatabase(PlaylistSimplified playlist, User user) {
         if(!isAlreadyExistById(playlist.getId())) {
             SpotifyUserPlaylist spotifyUserPlaylist = new SpotifyUserPlaylist();
 
@@ -39,6 +38,5 @@ public class SpotifyPlaylistServiceImpl implements SpotifyPlaylistService {
 
             playlistRepository.save(spotifyUserPlaylist);
         }
-        return null;
     }
 }

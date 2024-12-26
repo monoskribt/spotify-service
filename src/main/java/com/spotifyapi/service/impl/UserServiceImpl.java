@@ -2,25 +2,30 @@ package com.spotifyapi.service.impl;
 
 
 import com.spotifyapi.dto.TokensDTO;
+import com.spotifyapi.mapper.TrackWrapper;
+import com.spotifyapi.model.SpotifyTrackFromPlaylist;
 import com.spotifyapi.model.SpotifyUserPlaylist;
 import com.spotifyapi.model.User;
 import com.spotifyapi.repository.PlaylistRepository;
+import com.spotifyapi.repository.TrackRepository;
 import com.spotifyapi.repository.UserRepository;
 import com.spotifyapi.service.SpotifyPlaylistService;
 import com.spotifyapi.service.SpotifyTrackService;
 import com.spotifyapi.service.UserService;
-import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
 import org.apache.hc.core5.http.ParseException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.exceptions.SpotifyWebApiException;
 import se.michaelthelin.spotify.model_objects.specification.PlaylistSimplified;
 import se.michaelthelin.spotify.model_objects.specification.PlaylistTrack;
 import se.michaelthelin.spotify.model_objects.specification.Track;
+import se.michaelthelin.spotify.model_objects.specification.TrackSimplified;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -33,6 +38,7 @@ public class UserServiceImpl implements UserService {
     private final SpotifyPlaylistService playlistService;
     private final SpotifyTrackService spotifyTrackService;
     private final PlaylistRepository playlistRepository;
+    private final TrackRepository trackRepository;
 
     @Transactional
     @Override
@@ -54,6 +60,8 @@ public class UserServiceImpl implements UserService {
                     .execute().getItems())
                     .toList();
 
+            List<SpotifyTrackFromPlaylist> saveTrackToDB = new ArrayList<>();
+
             for (PlaylistSimplified playlist : playlists) {
 
                 playlistService.savePlaylistToDatabase(playlist, newUser);
@@ -61,7 +69,7 @@ public class UserServiceImpl implements UserService {
                 SpotifyUserPlaylist spotifyUserPlaylist = playlistRepository.findById(playlist.getId())
                         .orElseThrow(() -> new IllegalStateException("Playlist not found after save"));
 
-                var playlistTracks = Arrays.stream(
+                List<PlaylistTrack> playlistTracks = Arrays.stream(
                         spotifyApi.getPlaylistsItems(playlist.getId())
                                 .build()
                                 .execute()
@@ -69,10 +77,19 @@ public class UserServiceImpl implements UserService {
                         .toList();
 
                 for (PlaylistTrack trackItem : playlistTracks) {
-                    spotifyTrackService.saveTracks((Track) trackItem.getTrack(), spotifyUserPlaylist);
+                    if(trackItem != null) {
+                        Track track = (Track) trackItem.getTrack();
+
+                        SpotifyTrackFromPlaylist trackEntity = spotifyTrackService
+                                .convertTrackToTrackDBEntity(new TrackWrapper(track), spotifyUserPlaylist);
+
+                        saveTrackToDB.add(trackEntity);
+                    }
                 }
 
             }
+
+            trackRepository.saveAll(saveTrackToDB);
 
 
         } catch (IOException | SpotifyWebApiException | ParseException e) {
