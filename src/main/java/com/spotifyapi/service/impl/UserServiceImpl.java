@@ -98,6 +98,13 @@ public class UserServiceImpl implements UserService {
 
     @SneakyThrows
     @Override
+    public String getCurrentEmail() {
+        var profile = spotifyApi.getCurrentUsersProfile().build().execute();
+        return profile.getEmail();
+    }
+
+    @SneakyThrows
+    @Override
     public boolean isAlreadyExist() {
          return userRepository.existsByEmail(spotifyApi
                  .getCurrentUsersProfile()

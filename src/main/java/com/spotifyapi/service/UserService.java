@@ -10,5 +10,7 @@ public interface UserService {
 
     String getCurrentId();
 
+    String getCurrentEmail();
+
     boolean isAlreadyExist();
 }

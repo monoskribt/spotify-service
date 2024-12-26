@@ -25,13 +25,14 @@ public class SpotifyController {
     }
 
     @GetMapping("/release")
-    public List<AlbumSimplified> getReleasesByLastSixMonth(@RequestParam ("releaseOfDay") Long releaseOfDay) {
+    public List<AlbumSimplified> getReleasesByPeriod(
+            @RequestParam (value = "releaseOfDay", required = false) Long releaseOfDay) {
         return spotifyService.getReleases(releaseOfDay);
     }
 
     @GetMapping("/my-playlists")
     public List<PlaylistSimplified> getMyPlaylists() {
-        return spotifyService.getOfUserPlaylists();
+        return spotifyService.getOfUsersPlaylists();
     }
 
     @PostMapping("/save-releases")
