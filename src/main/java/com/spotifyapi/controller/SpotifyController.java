@@ -5,6 +5,7 @@ import com.spotifyapi.service.SpotifyService;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.*;
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
 import se.michaelthelin.spotify.model_objects.specification.PlaylistSimplified;
@@ -16,7 +17,7 @@ import java.util.List;
 @AllArgsConstructor
 public class SpotifyController {
 
-    private final SpotifyService spotifyService;
+    private SpotifyService spotifyService;
 
     @GetMapping("/artist")
     public List<SpotifyArtist> getMyArtist() {
@@ -24,19 +25,21 @@ public class SpotifyController {
     }
 
     @GetMapping("/release")
-    public List<AlbumSimplified> getReleasesByLastSixMonth() {
-        return spotifyService.getReleases();
+    public List<AlbumSimplified> getReleasesByPeriod(
+            @RequestParam (value = "releaseOfDay", required = false) Long releaseOfDay) {
+        return spotifyService.getReleases(releaseOfDay);
     }
 
     @GetMapping("/my-playlists")
-    private List<PlaylistSimplified> getMyPlaylists() {
-        return spotifyService.getOfUserPlaylists();
+    public List<PlaylistSimplified> getMyPlaylists() {
+        return spotifyService.getOfUsersPlaylists();
     }
 
     @PostMapping("/save-releases")
-    public ResponseEntity<String> saveReleasesToPlaylist(@RequestParam ("playlistId") String playlistId) {
+    public ResponseEntity<String> saveReleasesToPlaylist(@RequestParam ("playlistId") String playlistId,
+                                                         @RequestParam ("releaseOfDay") Long releaseOfDay) {
         try {
-            spotifyService.saveReleasesToPlaylistById(playlistId);
+            spotifyService.saveReleasesToPlaylistById(playlistId, releaseOfDay);
             return ResponseEntity.ok("Successfully added");
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Something is wrong: " + e.getMessage());
@@ -52,5 +55,4 @@ public class SpotifyController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Something is wrong: " + e.getMessage());
         }
     }
-
 }

@@ -6,6 +6,9 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.List;
+import java.util.UUID;
+
 @Entity
 @Getter
 @Setter
@@ -13,8 +16,7 @@ import lombok.Setter;
 public class User {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
 
     @Column(name = "username")
     private String username;
@@ -22,10 +24,7 @@ public class User {
     @Column(unique = true, name = "email")
     private String email;
 
-    @Column(name = "spotify_user_id")
-    private String spotifyUserId;
-
-    @Column(name = "access_code")
-    private String accessCode;
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<SpotifyUserPlaylist> userPlaylists;
 
 }

@@ -4,6 +4,13 @@ import com.spotifyapi.dto.TokensDTO;
 
 public interface UserService {
 
-    void saveUserData(TokensDTO tokens);
+    void saveUserOfData(TokensDTO tokens);
 
+    String getCurrentUsername();
+
+    String getCurrentId();
+
+    String getCurrentEmail();
+
+    boolean isAlreadyExist();
 }
