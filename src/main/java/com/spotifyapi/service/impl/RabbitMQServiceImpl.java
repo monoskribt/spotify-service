@@ -23,6 +23,7 @@ public class RabbitMQServiceImpl implements RabbitMQService {
     private final SpotifyService spotifyService;
     private final UserService userService;
     private final Binding binding;
+    private final ObjectMapper objectMapper;
 
 
     @SneakyThrows
@@ -41,7 +42,7 @@ public class RabbitMQServiceImpl implements RabbitMQService {
                 "release", releaseInfo
         );
 
-        ObjectMapper objectMapper = new ObjectMapper();
+
         String jsonMessage = objectMapper.writeValueAsString(message);
 
         rabbitTemplate.convertAndSend(binding.getExchange(),

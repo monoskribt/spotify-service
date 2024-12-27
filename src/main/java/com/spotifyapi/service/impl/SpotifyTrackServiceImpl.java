@@ -1,5 +1,6 @@
 package com.spotifyapi.service.impl;
 
+import com.spotifyapi.mapper.AbstractTrack;
 import com.spotifyapi.model.SpotifyTrackFromPlaylist;
 import com.spotifyapi.model.SpotifyUserPlaylist;
 import com.spotifyapi.repository.PlaylistRepository;
@@ -7,50 +8,54 @@ import com.spotifyapi.repository.TrackRepository;
 import com.spotifyapi.service.SpotifyTrackService;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
+import se.michaelthelin.spotify.model_objects.specification.ArtistSimplified;
+import se.michaelthelin.spotify.model_objects.specification.PlaylistTrack;
 import se.michaelthelin.spotify.model_objects.specification.Track;
 import se.michaelthelin.spotify.model_objects.specification.TrackSimplified;
 
+import java.util.Arrays;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 
 @Service
 @AllArgsConstructor
 public class SpotifyTrackServiceImpl implements SpotifyTrackService {
 
     private final TrackRepository trackRepository;
-    private final PlaylistRepository playlistRepository;
 
     @Override
-    public void saveTracks(Track track, SpotifyUserPlaylist playlist) {
-        SpotifyTrackFromPlaylist trackFromPlaylist = new SpotifyTrackFromPlaylist();
-        Optional<SpotifyUserPlaylist> spotifyUserPlaylist = playlistRepository.findById(playlist.getId());
-
-
-        if(!isAlreadyExist(track.getId(), spotifyUserPlaylist.get().getId())) {
-            trackFromPlaylist.setId(track.getId());
-            trackFromPlaylist.setName(track.getName());
-            trackFromPlaylist.setExternalUrl(track.getExternalUrls().get("spotify"));
-            trackFromPlaylist.setArtistName(track.getArtists()[0].getName());
-
-            trackFromPlaylist.setUserPlaylist(spotifyUserPlaylist.get());
-
-            trackRepository.save(trackFromPlaylist);
-        }
+    public Set<String> getExistingTrackIds(String playlistId) {
+        return trackRepository.findAllByUserPlaylistId(playlistId)
+                .stream()
+                .map(SpotifyTrackFromPlaylist::getId)
+                .collect(Collectors.toSet());
     }
+
 
     @Override
-    public boolean isAlreadyExist(String trackId, String playlistId) {
-        return trackRepository.existsByIdAndUserPlaylistId(trackId, playlistId);
+    public SpotifyTrackFromPlaylist convertTrackToTrackDBEntity(
+            AbstractTrack track, SpotifyUserPlaylist playlist) {
+
+        SpotifyTrackFromPlaylist trackEntity = new SpotifyTrackFromPlaylist();
+
+        trackEntity.setId(track.getId());
+        trackEntity.setName(track.getName());
+        trackEntity.setExternalUrl(getSpotifyUrl(track.getExternalUrls()));
+        trackEntity.setArtistName(getArtistName(track.getArtists()));
+        trackEntity.setUserPlaylist(playlist);
+
+        return trackEntity;
     }
 
-    @Override
-    public Track convertToTrackFormat(TrackSimplified trackSimplified) {
-        return new Track.Builder()
-                .setId(trackSimplified.getId())
-                .setName(trackSimplified.getName())
-                .setExternalUrls(trackSimplified.getExternalUrls())
-                .setArtists(trackSimplified.getArtists())
-                .build();
+    private String getSpotifyUrl(Map<String, String> externalUrls) {
+        return externalUrls != null ? externalUrls.get("spotify") : null;
     }
 
+    private String getArtistName(ArtistSimplified[] artists) {
+        return (artists != null && artists.length > 0) ? artists[0].getName() : null;
+    }
 
 }
