@@ -1,16 +1,17 @@
 package com.spotifyapi.service;
 
+import com.spotifyapi.mapper.AbstractTrack;
 import com.spotifyapi.model.SpotifyTrackFromPlaylist;
 import com.spotifyapi.model.SpotifyUserPlaylist;
 import se.michaelthelin.spotify.model_objects.specification.Track;
-import se.michaelthelin.spotify.model_objects.specification.TrackSimplified;
+
+import java.util.Set;
 
 public interface SpotifyTrackService {
 
-    void saveTracks(Track track, SpotifyUserPlaylist playlist);
+    Set<String> getExistingTrackIds(String playlistId);
 
-    boolean isAlreadyExist(String trackId, String playlistId);
-
-    Track convertToTrackFormat(TrackSimplified trackSimplified);
+    SpotifyTrackFromPlaylist convertTrackToTrackDBEntity(
+            AbstractTrack track, SpotifyUserPlaylist playlist);
 
 }

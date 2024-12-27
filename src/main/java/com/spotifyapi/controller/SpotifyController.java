@@ -5,12 +5,12 @@ import com.spotifyapi.service.SpotifyService;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.*;
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
 import se.michaelthelin.spotify.model_objects.specification.PlaylistSimplified;
 
 import java.util.List;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/api/spotify")
@@ -31,7 +31,7 @@ public class SpotifyController {
     }
 
     @GetMapping("/my-playlists")
-    public List<PlaylistSimplified> getMyPlaylists() {
+    public Set<PlaylistSimplified> getMyPlaylists() {
         return spotifyService.getOfUsersPlaylists();
     }
 
