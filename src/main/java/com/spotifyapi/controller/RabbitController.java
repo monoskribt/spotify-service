@@ -1,6 +1,7 @@
 package com.spotifyapi.controller;
 
 import com.spotifyapi.service.RabbitMQService;
+import com.spotifyapi.service.SpotifyReleaseService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -9,11 +10,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class RabbitController {
 
-    private final RabbitMQService rabbitMQService;
+    private final SpotifyReleaseService spotifyReleaseService;
 
     @GetMapping("/test-rabbitmq")
     public String testRabbitMQ() {
-        rabbitMQService.sendInfoToTelegram();
+        spotifyReleaseService.checkReleasesForAllUsers();
         return "Message sent to RabbitMQ!";
     }
 
