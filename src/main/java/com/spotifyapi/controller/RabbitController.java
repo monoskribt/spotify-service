@@ -1,6 +1,5 @@
 package com.spotifyapi.controller;
 
-import com.spotifyapi.service.RabbitMQService;
 import com.spotifyapi.service.SpotifyReleaseService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;

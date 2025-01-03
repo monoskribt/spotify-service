@@ -8,6 +8,8 @@ import com.spotifyapi.service.RabbitMQService;
 import com.spotifyapi.service.SpotifyReleaseService;
 import com.spotifyapi.service.SpotifyService;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
@@ -25,6 +27,8 @@ public class SpotifyReleaseServiceImpl implements SpotifyReleaseService {
     private final UserRepository userRepository;
     private final RabbitMQService rabbitMQService;
 
+    private static final Logger logger = LoggerFactory.getLogger(SpotifyReleaseServiceImpl.class);
+
     @Override
     public void save(Set<SpotifyRelease> releaseList) {
         releaseRepository.saveAll(releaseList);
@@ -35,7 +39,6 @@ public class SpotifyReleaseServiceImpl implements SpotifyReleaseService {
         return releaseRepository.findByUserId(id);
     }
 
-    @Scheduled(cron = "0 0 6 * * *")
     @Override
     public void checkReleasesForAllUsers() {
         List<User> userList = userRepository.findAll();
@@ -59,7 +62,7 @@ public class SpotifyReleaseServiceImpl implements SpotifyReleaseService {
                 .stream()
                 .map(SpotifyRelease::getId)
                 .toList();
-        System.out.println(alreadyContainsReleasesId);
+        logger.info(String.valueOf(alreadyContainsReleasesId));
 
         Set<SpotifyRelease> checkListRelease = albumList.stream()
                 .filter(release -> !alreadyContainsReleasesId.contains(release.getId()))
