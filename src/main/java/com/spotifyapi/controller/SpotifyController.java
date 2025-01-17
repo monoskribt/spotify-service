@@ -39,18 +39,27 @@ public class SpotifyController {
     public ResponseEntity<String> saveReleasesToPlaylist(@RequestParam ("playlistId") String playlistId,
                                                          @RequestParam ("releaseOfDay") Long releaseOfDay) {
         try {
-            spotifyService.saveReleasesToPlaylistById(playlistId, releaseOfDay);
-            return ResponseEntity.ok("Successfully added");
+            String result = spotifyService.saveReleasesToPlaylistById(playlistId, releaseOfDay);
+            if("Releases are already in your playlist".equals(result)) {
+                return ResponseEntity.status(HttpStatus.OK).body(result);
+            }
+
+            return ResponseEntity.ok(result);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Something is wrong: " + e.getMessage());
         }
     }
 
     @DeleteMapping("/delete-all-from-playlist")
-    public ResponseEntity<String> deleteAllItemsFromPlaylistById(@RequestParam ("playlistId") String playlistId) {
+    public ResponseEntity<String> deleteAllItemsFromPlaylistById(@RequestParam("playlistId") String playlistId) {
         try {
-            spotifyService.deleteAllOfTracksFromPlaylistById(playlistId);
-            return ResponseEntity.ok("Successfully removed");
+            String result = spotifyService.deleteAllOfTracksFromPlaylistById(playlistId);
+
+            if ("Playlist is already empty".equals(result)) {
+                return ResponseEntity.status(HttpStatus.OK).body(result);
+            }
+
+            return ResponseEntity.ok(result);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Something is wrong: " + e.getMessage());
         }

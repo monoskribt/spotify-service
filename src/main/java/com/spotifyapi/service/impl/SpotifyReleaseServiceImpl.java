@@ -3,14 +3,13 @@ package com.spotifyapi.service.impl;
 import com.spotifyapi.model.SpotifyRelease;
 import com.spotifyapi.model.User;
 import com.spotifyapi.repository.ReleaseRepository;
-import com.spotifyapi.repository.UserRepository;
 import com.spotifyapi.service.RabbitMQService;
 import com.spotifyapi.service.SpotifyReleaseService;
 import com.spotifyapi.service.SpotifyService;
+import com.spotifyapi.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
 
@@ -24,8 +23,8 @@ public class SpotifyReleaseServiceImpl implements SpotifyReleaseService {
 
     private final ReleaseRepository releaseRepository;
     private final SpotifyService spotifyService;
-    private final UserRepository userRepository;
     private final RabbitMQService rabbitMQService;
+    private final UserService userService;
 
     private static final Logger logger = LoggerFactory.getLogger(SpotifyReleaseServiceImpl.class);
 
@@ -34,14 +33,14 @@ public class SpotifyReleaseServiceImpl implements SpotifyReleaseService {
         releaseRepository.saveAll(releaseList);
     }
 
-    @Override
-    public List<SpotifyRelease> getReleasesByUserId(String id) {
+
+    private List<SpotifyRelease> getReleasesByUserId(String id) {
         return releaseRepository.findByUserId(id);
     }
 
     @Override
     public void checkReleasesForAllUsers() {
-        List<User> userList = userRepository.findAll();
+        Set<User> userList = userService.getAllUsersWithSubscribeStatus();
 
         Map<User, Set<SpotifyRelease>> userReleases = userList.stream()
                 .collect(Collectors.toMap(

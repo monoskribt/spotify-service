@@ -42,10 +42,4 @@ public class ProjectController {
 
         response.sendRedirect(corsProps.getAllowedOrigins());
     }
-
-
-    @GetMapping("/info")
-    public String getInfo() {
-        return "Welcome to your info";
-    }
 }

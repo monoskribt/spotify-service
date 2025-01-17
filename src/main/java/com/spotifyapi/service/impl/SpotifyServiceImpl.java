@@ -14,6 +14,7 @@ import com.spotifyapi.service.SpotifyTrackService;
 import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.enums.ModelObjectType;
 import se.michaelthelin.spotify.model_objects.specification.*;
@@ -94,7 +95,8 @@ public class SpotifyServiceImpl implements SpotifyService {
 
     @SneakyThrows
     @Override
-    public void saveReleasesToPlaylistById(String playlistId, Long releaseOfDay) {
+    @Transactional
+    public String saveReleasesToPlaylistById(String playlistId, Long releaseOfDay) {
         List<AlbumSimplified> releases = getReleases(releaseOfDay);
         List<String> trackUrl = new ArrayList<>();
         List<SpotifyTrackFromPlaylist> saveTrackToDB = new ArrayList<>();
@@ -103,6 +105,8 @@ public class SpotifyServiceImpl implements SpotifyService {
 
         Set<String> existingTrackIds = spotifyTrackService
                 .getExistingTrackIds(playlist.get().getId());
+
+        boolean checkToAddTrack = false;
 
         for (AlbumSimplified album : releases) {
             var tracks = spotifyApi.getAlbumsTracks(album.getId())
@@ -118,49 +122,56 @@ public class SpotifyServiceImpl implements SpotifyService {
                             .convertTrackToTrackDBEntity(new TrackSimplifiedWrapper(track), playlist.get());
 
                     saveTrackToDB.add(trackEntity);
+                    checkToAddTrack = true;
                 }
             }
         }
 
-        trackRepository.saveAll(saveTrackToDB);
-
-        spotifyApi.addItemsToPlaylist(playlistId, trackUrl.toArray(new String[0]))
-                .build()
-                .execute();
+        if(checkToAddTrack) {
+            trackRepository.saveAll(saveTrackToDB);
+            spotifyApi.addItemsToPlaylist(playlistId, trackUrl.toArray(new String[0]))
+                    .build()
+                    .execute();
+            return "Successfully added";
+        } else {
+            return "Releases are already in your playlist";
+        }
     }
 
     @SneakyThrows
     @Override
-    public void deleteAllOfTracksFromPlaylistById(String playlistId) {
+    @Transactional
+    public String deleteAllOfTracksFromPlaylistById(String playlistId) {
         PlaylistTrack[] trackInPlaylist = spotifyApi.getPlaylistsItems(playlistId)
                 .build()
                 .execute()
                 .getItems();
 
-        Optional<PlaylistTrack[]> optionalOfPlaylistTracks = Optional.ofNullable(trackInPlaylist);
+        return Optional.ofNullable(trackInPlaylist)
+                .filter(tracks -> tracks.length > 0)
+                .map(tracks -> {
+                    JsonArray removeTracks = new JsonArray();
+                    Arrays.stream(tracks).forEach(track -> {
+                        JsonObject trackObj = new JsonObject();
+                        trackObj.addProperty("uri", track.getTrack().getUri());
+                        removeTracks.add(trackObj);
+                    });
 
-        optionalOfPlaylistTracks.ifPresentOrElse(tracks -> {
+                    try {
+                        spotifyApi.removeItemsFromPlaylist(playlistId, removeTracks).build().execute();
 
-            JsonArray removeTracks = new JsonArray();
-            Arrays.stream(tracks).forEach(track -> {
-                JsonObject trackObj = new JsonObject();
-                trackObj.addProperty("uri", track.getTrack().getUri());
-                removeTracks.add(trackObj);
-            });
+                        List<SpotifyTrackFromPlaylist> tracksToRemove = trackRepository
+                                .findAllByUserPlaylistId(playlistId);
+                        trackRepository.deleteAll(tracksToRemove);
 
-            try {
-                spotifyApi.removeItemsFromPlaylist(playlistId, removeTracks).build().execute();
-
-                List<SpotifyTrackFromPlaylist> tracksToRemove = trackRepository
-                        .findAllByUserPlaylistId(playlistId);
-                trackRepository.deleteAll(tracksToRemove);
-            } catch (Exception e) {
-                System.out.println("Something is wrong: " + e.getMessage());
-            }
-            System.out.println("Successfully removed");
-        },
-        () -> System.out.println("Playlist is empty.")
-        );
+                        return "Successfully removed";
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        return "Something went wrong: " + e.getMessage();
+                    }
+                })
+                .orElse("Playlist is already empty");
     }
+
 
 }
