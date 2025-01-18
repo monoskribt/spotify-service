@@ -24,7 +24,6 @@ public class ProjectController {
 
     @GetMapping("/login")
     public String spotifyLogin(HttpServletResponse response) throws IOException {
-        // response.sendRedirect(spotifyAuth.authorize());
         return spotifyAuth.authorize();
     }
 

@@ -25,6 +25,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.spotifyapi.constant.ConstantDayForReleases.THIRTY_DAYS;
+import static com.spotifyapi.constant.ConstantResponses.*;
 
 @Service
 @AllArgsConstructor
@@ -132,9 +133,9 @@ public class SpotifyServiceImpl implements SpotifyService {
             spotifyApi.addItemsToPlaylist(playlistId, trackUrl.toArray(new String[0]))
                     .build()
                     .execute();
-            return "Successfully added";
+            return SUCCESSFULLY_ADDED;
         } else {
-            return "Releases are already in your playlist";
+            return RELEASE_IS_ALREADY_EXIST;
         }
     }
 
@@ -164,13 +165,13 @@ public class SpotifyServiceImpl implements SpotifyService {
                                 .findAllByUserPlaylistId(playlistId);
                         trackRepository.deleteAll(tracksToRemove);
 
-                        return "Successfully removed";
+                        return SUCCESSFULLY_REMOVED;
                     } catch (Exception e) {
                         e.printStackTrace();
                         return "Something went wrong: " + e.getMessage();
                     }
                 })
-                .orElse("Playlist is already empty");
+                .orElse(PLAYLIST_IS_EMPTY);
     }
 
 

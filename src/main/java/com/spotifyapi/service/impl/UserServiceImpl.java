@@ -3,6 +3,7 @@ package com.spotifyapi.service.impl;
 
 import com.spotifyapi.dto.TokensDTO;
 import com.spotifyapi.enums.SubscribeStatus;
+import com.spotifyapi.exception.UserNotFoundException;
 import com.spotifyapi.mapper.TrackWrapper;
 import com.spotifyapi.model.SpotifyTrackFromPlaylist;
 import com.spotifyapi.model.SpotifyUserPlaylist;
@@ -99,7 +100,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public void manageSubscribeStatusOfUser(SubscribeStatus status) {
         User user = userRepository.findById(getCurrentId())
-                .orElseThrow(() -> new RuntimeException("User is not found"));
+                .orElseThrow(() -> new UserNotFoundException("User is not found"));
 
         user.setSubscribeStatus(status);
         userRepository.save(user);
@@ -116,7 +117,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public String getSubscribeStatusUsers() {
         User u = userRepository.findById(getCurrentId())
-                .orElseThrow(() -> new RuntimeException("User is not found"));
+                .orElseThrow(() -> new UserNotFoundException("User is not found"));
         return u.getSubscribeStatus().toString();
     }
 
