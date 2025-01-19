@@ -13,6 +13,8 @@ import com.spotifyapi.service.SpotifyService;
 import com.spotifyapi.service.SpotifyTrackService;
 import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import se.michaelthelin.spotify.SpotifyApi;
@@ -36,6 +38,8 @@ public class SpotifyServiceImpl implements SpotifyService {
     private final SpotifyTrackService spotifyTrackService;
     private final TrackRepository trackRepository;
 
+    private static final Logger logger = LoggerFactory.getLogger(SpotifyServiceImpl.class);
+
     @SneakyThrows
     @Override
     public Set<PlaylistSimplified> getOfUsersPlaylists() {
@@ -47,16 +51,28 @@ public class SpotifyServiceImpl implements SpotifyService {
     @Override
     @SneakyThrows
     public List<SpotifyArtist> getFollowedArtist() {
+        List<SpotifyArtist> followedArtists = new ArrayList<>();
+        int limit = 50;
+        String cursor = "0";
 
-        return Arrays.stream(spotifyApi
-                .getUsersFollowedArtists(ModelObjectType.ARTIST)
-                .limit(10)
-                .build()
-                .execute()
-                .getItems())
-                .map(artist -> new SpotifyArtist(artist.getId(), artist.getName()))
-                .toList();
+        while (cursor != null) {
+            var responseFollowerArtists = spotifyApi.getUsersFollowedArtists(ModelObjectType.ARTIST)
+                    .limit(limit)
+                    .after(cursor)
+                    .build()
+                    .execute();
 
+            if(responseFollowerArtists != null) {
+                followedArtists.addAll(Arrays.stream(responseFollowerArtists.getItems())
+                        .map(artist -> new SpotifyArtist(artist.getId(), artist.getName()))
+                        .toList());
+                cursor = responseFollowerArtists.getCursors()[0].getAfter();
+            } else {
+                break;
+            }
+        }
+
+        return followedArtists;
     }
 
     @Override
@@ -76,14 +92,14 @@ public class SpotifyServiceImpl implements SpotifyService {
 
         for(SpotifyArtist artist : artists) {
             var album = Arrays.stream(spotifyApi
-                    .getArtistsAlbums(artist.getId())
-                    .build()
-                    .execute()
-                    .getItems())
-                            .filter(date -> {
-                                LocalDate releaseDate = LocalDate.parse(date.getReleaseDate(), formatter);
-                                return releaseDate.isAfter(LocalDate.now().minusDays(releaseOfDay));
-                            }).toList();
+                            .getArtistsAlbums(artist.getId())
+                            .build()
+                            .execute()
+                            .getItems())
+                    .filter(date -> {
+                        LocalDate releaseDate = LocalDate.parse(date.getReleaseDate(), formatter);
+                        return releaseDate.isAfter(LocalDate.now().minusDays(releaseOfDay));
+                    }).toList();
 
             listOfAlbums.addAll(album);
         }
@@ -93,6 +109,9 @@ public class SpotifyServiceImpl implements SpotifyService {
                 .sorted(Comparator.comparing(AlbumSimplified::getReleaseDate))
                 .toList();
     }
+
+
+
 
     @SneakyThrows
     @Override
@@ -110,29 +129,45 @@ public class SpotifyServiceImpl implements SpotifyService {
         boolean checkToAddTrack = false;
 
         for (AlbumSimplified album : releases) {
-            var tracks = spotifyApi.getAlbumsTracks(album.getId())
-                    .build()
-                    .execute()
-                    .getItems();
+            int offset = 0;
+            boolean hasMore = true;
 
-            for (TrackSimplified track : tracks) {
-                if(track != null && !existingTrackIds.contains(track.getId())) {
-                    trackUrl.add(track.getUri());
+            while (hasMore) {
+                var tracksPage = spotifyApi.getAlbumsTracks(album.getId())
+                        .limit(50)
+                        .offset(offset)
+                        .build()
+                        .execute();
 
-                    SpotifyTrackFromPlaylist trackEntity = spotifyTrackService
-                            .convertTrackToTrackDBEntity(new TrackSimplifiedWrapper(track), playlist.get());
+                for (TrackSimplified track : tracksPage.getItems()) {
+                    if(track != null && !existingTrackIds.contains(track.getId())) {
+                        trackUrl.add(track.getUri());
 
-                    saveTrackToDB.add(trackEntity);
-                    checkToAddTrack = true;
+                        SpotifyTrackFromPlaylist trackEntity = spotifyTrackService
+                                .convertTrackToTrackDBEntity(new TrackSimplifiedWrapper(track), playlist.get());
+
+                        saveTrackToDB.add(trackEntity);
+                        checkToAddTrack = true;
+                    }
                 }
+
+                hasMore = tracksPage.getNext() != null;
+                offset += 50;
             }
+
         }
 
-        if(checkToAddTrack) {
+        if (checkToAddTrack) {
             trackRepository.saveAll(saveTrackToDB);
-            spotifyApi.addItemsToPlaylist(playlistId, trackUrl.toArray(new String[0]))
-                    .build()
-                    .execute();
+
+            for (int i = 0; i < trackUrl.size(); i += 50) {
+                List<String> trackUrlPart = trackUrl.subList(i, Math.min(i + 50, trackUrl.size()));
+
+                spotifyApi.addItemsToPlaylist(playlistId, trackUrlPart.toArray(new String[0]))
+                        .build()
+                        .execute();
+            }
+
             return SUCCESSFULLY_ADDED;
         } else {
             return RELEASE_IS_ALREADY_EXIST;
@@ -143,36 +178,64 @@ public class SpotifyServiceImpl implements SpotifyService {
     @Override
     @Transactional
     public String deleteAllOfTracksFromPlaylistById(String playlistId) {
-        PlaylistTrack[] trackInPlaylist = spotifyApi.getPlaylistsItems(playlistId)
-                .build()
-                .execute()
-                .getItems();
+        List<PlaylistTrack> allTracks = new ArrayList<>();
 
-        return Optional.ofNullable(trackInPlaylist)
-                .filter(tracks -> tracks.length > 0)
-                .map(tracks -> {
-                    JsonArray removeTracks = new JsonArray();
-                    Arrays.stream(tracks).forEach(track -> {
-                        JsonObject trackObj = new JsonObject();
-                        trackObj.addProperty("uri", track.getTrack().getUri());
-                        removeTracks.add(trackObj);
-                    });
+        int limit = 50;
+        int offset = 0;
+        boolean hasMore = true;
 
-                    try {
-                        spotifyApi.removeItemsFromPlaylist(playlistId, removeTracks).build().execute();
+        while (hasMore) {
+            PlaylistTrack[] trackInPlaylist = spotifyApi.getPlaylistsItems(playlistId)
+                    .offset(offset)
+                    .limit(limit)
+                    .build()
+                    .execute()
+                    .getItems();
 
-                        List<SpotifyTrackFromPlaylist> tracksToRemove = trackRepository
-                                .findAllByUserPlaylistId(playlistId);
-                        trackRepository.deleteAll(tracksToRemove);
+            if (trackInPlaylist != null) {
+                allTracks.addAll(Arrays.asList(trackInPlaylist));
+            } else {
+                logger.info("Playlist is empty.");
+                break;
+            }
 
-                        return SUCCESSFULLY_REMOVED;
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        return "Something went wrong: " + e.getMessage();
-                    }
-                })
-                .orElse(PLAYLIST_IS_EMPTY);
+            hasMore = trackInPlaylist.length == limit;
+            offset += limit;
+        }
+
+        if (allTracks.isEmpty()) {
+            logger.info("Playlist is already empty");
+            return PLAYLIST_IS_EMPTY;
+        }
+
+        JsonArray removeTracks = new JsonArray();
+
+        for(PlaylistTrack track : allTracks) {
+            JsonObject trackObj = new JsonObject();
+            trackObj.addProperty("uri", track.getTrack().getUri());
+            removeTracks.add(trackObj);
+        }
+
+        try {
+            for(int i = 0; i < removeTracks.size(); i+= 50) {
+                JsonArray pathArrayToRemove = new JsonArray();
+
+                for(int j = i; j < Math.min(i + 50, removeTracks.size()); j++) {
+                    pathArrayToRemove.add(removeTracks.get(j));
+                }
+
+                spotifyApi.removeItemsFromPlaylist(playlistId, pathArrayToRemove)
+                        .build()
+                        .execute();
+            }
+
+            List<SpotifyTrackFromPlaylist> tracksToRemove = trackRepository.findAllByUserPlaylistId(playlistId);
+            trackRepository.deleteAll(tracksToRemove);
+
+            return SUCCESSFULLY_REMOVED;
+        } catch (Exception e) {
+            logger.error("Error while removing tracks from playlist: {}", e.getMessage());
+            return "Something went wrong: " + e.getMessage();
+        }
     }
-
-
 }
