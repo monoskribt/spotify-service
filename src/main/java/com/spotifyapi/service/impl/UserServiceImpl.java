@@ -2,6 +2,8 @@ package com.spotifyapi.service.impl;
 
 
 import com.spotifyapi.dto.TokensDTO;
+import com.spotifyapi.enums.SubscribeStatus;
+import com.spotifyapi.exception.UserNotFoundException;
 import com.spotifyapi.mapper.TrackWrapper;
 import com.spotifyapi.model.SpotifyTrackFromPlaylist;
 import com.spotifyapi.model.SpotifyUserPlaylist;
@@ -24,9 +26,8 @@ import se.michaelthelin.spotify.model_objects.specification.PlaylistTrack;
 import se.michaelthelin.spotify.model_objects.specification.Track;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
@@ -96,6 +97,29 @@ public class UserServiceImpl implements UserService {
         }
     }
 
+    @Override
+    public void manageSubscribeStatusOfUser(SubscribeStatus status) {
+        User user = userRepository.findById(getCurrentId())
+                .orElseThrow(() -> new UserNotFoundException("User is not found"));
+
+        user.setSubscribeStatus(status);
+        userRepository.save(user);
+    }
+
+    @Override
+    public Set<User> getAllUsersWithSubscribeStatus() {
+        return userRepository.findAll()
+                .stream()
+                .filter(user -> user.getSubscribeStatus().equals(SubscribeStatus.SUBSCRIBE))
+                .collect(Collectors.toSet());
+    }
+
+    @Override
+    public String getSubscribeStatusUsers() {
+        User u = userRepository.findById(getCurrentId())
+                .orElseThrow(() -> new UserNotFoundException("User is not found"));
+        return u.getSubscribeStatus().toString();
+    }
 
 
     @SneakyThrows
@@ -110,13 +134,6 @@ public class UserServiceImpl implements UserService {
     public String getCurrentId() {
         var profile = spotifyApi.getCurrentUsersProfile().build().execute();
         return profile.getId();
-    }
-
-    @SneakyThrows
-    @Override
-    public String getCurrentEmail() {
-        var profile = spotifyApi.getCurrentUsersProfile().build().execute();
-        return profile.getEmail();
     }
 
     @SneakyThrows

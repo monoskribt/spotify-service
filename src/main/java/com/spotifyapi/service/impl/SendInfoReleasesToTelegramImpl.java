@@ -14,7 +14,7 @@ public class SendInfoReleasesToTelegramImpl implements SendInfoReleasesToTelegra
         this.spotifyReleaseService = spotifyReleaseService;
     }
 
-    @Scheduled(cron = "0 0 6 * * *")
+    @Scheduled(cron = "0 0 8 * * *")
     @Override
     public void sendToTelegram() {
         spotifyReleaseService.checkReleasesForAllUsers();

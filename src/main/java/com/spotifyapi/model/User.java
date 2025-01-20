@@ -1,13 +1,12 @@
 package com.spotifyapi.model;
 
 
+import com.spotifyapi.enums.SubscribeStatus;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.util.List;
-import java.util.UUID;
 
 @Entity
 @Getter
@@ -24,7 +23,11 @@ public class User {
     @Column(unique = true, name = "email")
     private String email;
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, name = "subscribe_status", columnDefinition = "varchar(255) default 'UNSUBSCRIBE'")
+    private SubscribeStatus subscribeStatus = SubscribeStatus.UNSUBSCRIBE;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<SpotifyUserPlaylist> userPlaylists;
 
 }

@@ -19,38 +19,42 @@ public class SpotifyController {
 
     private SpotifyService spotifyService;
 
-    @GetMapping("/artist")
+    @GetMapping("/artists")
     public List<SpotifyArtist> getMyArtist() {
         return spotifyService.getFollowedArtist();
     }
 
-    @GetMapping("/release")
+    @GetMapping("/releases")
     public List<AlbumSimplified> getReleasesByPeriod(
             @RequestParam (value = "releaseOfDay", required = false) Long releaseOfDay) {
         return spotifyService.getReleases(releaseOfDay);
     }
 
-    @GetMapping("/my-playlists")
+    @GetMapping("/playlists")
     public Set<PlaylistSimplified> getMyPlaylists() {
         return spotifyService.getOfUsersPlaylists();
     }
 
-    @PostMapping("/save-releases")
-    public ResponseEntity<String> saveReleasesToPlaylist(@RequestParam ("playlistId") String playlistId,
+    @PostMapping("/playlists/{playlistId}/releases")
+    public ResponseEntity<String> saveReleasesToPlaylist(@PathVariable ("playlistId") String playlistId,
                                                          @RequestParam ("releaseOfDay") Long releaseOfDay) {
         try {
-            spotifyService.saveReleasesToPlaylistById(playlistId, releaseOfDay);
-            return ResponseEntity.ok("Successfully added");
+            String result = spotifyService.saveReleasesToPlaylistById(playlistId, releaseOfDay);
+            return ResponseEntity
+                    .status(HttpStatus.OK)
+                    .body(result);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Something is wrong: " + e.getMessage());
         }
     }
 
-    @DeleteMapping("/delete-all-from-playlist")
-    public ResponseEntity<String> deleteAllItemsFromPlaylistById(@RequestParam ("playlistId") String playlistId) {
+    @DeleteMapping("/playlists/{playlistId}/items")
+    public ResponseEntity<String> deleteAllItemsFromPlaylistById(@PathVariable("playlistId") String playlistId) {
         try {
-            spotifyService.deleteAllOfTracksFromPlaylistById(playlistId);
-            return ResponseEntity.ok("Successfully removed");
+            String result = spotifyService.deleteAllOfTracksFromPlaylistById(playlistId);
+            return ResponseEntity
+                    .status(HttpStatus.OK)
+                    .body(result);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Something is wrong: " + e.getMessage());
         }

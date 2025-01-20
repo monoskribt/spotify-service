@@ -23,7 +23,13 @@ public class SpotifyAuthImpl implements SpotifyAuth {
     @Override
     public String authorize() {
         return spotifyApi.authorizationCodeUri()
-                .scope(USER_READ_EMAIL, USER_TOP_READ, USER_FOLLOW_READ)
+                .scope(USER_LIBRARY_READ,
+                        USER_LIBRARY_MODIFY,
+                        USER_FOLLOW_READ,
+                        USER_FOLLOW_MODIFY,
+                        PLAYLIST_MODIFY_PRIVATE,
+                        PLAYLIST_MODIFY_PUBLIC,
+                        USER_READ_EMAIL)
                 .show_dialog(true)
                 .build()
                 .execute()
