@@ -42,7 +42,7 @@ public class SpotifyServiceImpl implements SpotifyService {
 
     @SneakyThrows
     @Override
-    public Set<PlaylistSimplified> getOfUsersPlaylists() {
+    public Set<PlaylistSimplified> getOfUsersPlaylists(String authorizationHeader) {
         return Arrays.stream(spotifyApi.getListOfCurrentUsersPlaylists()
                 .build()
                 .execute().getItems()).collect(Collectors.toSet());
@@ -50,7 +50,9 @@ public class SpotifyServiceImpl implements SpotifyService {
 
     @Override
     @SneakyThrows
-    public List<SpotifyArtist> getFollowedArtist() {
+    public List<SpotifyArtist> getFollowedArtist(String authorizationHeader) {
+
+        
         List<SpotifyArtist> followedArtists = new ArrayList<>();
         int limit = 50;
         String cursor = "0";
@@ -77,14 +79,14 @@ public class SpotifyServiceImpl implements SpotifyService {
 
     @Override
     @SneakyThrows
-    public List<AlbumSimplified> getReleases() {
-        return getReleases(THIRTY_DAYS);
+    public List<AlbumSimplified> getReleases(String authorizationHeader) {
+        return getReleases(THIRTY_DAYS, authorizationHeader);
     }
 
     @Override
     @SneakyThrows
-    public List<AlbumSimplified> getReleases(Long releaseOfDay) {
-        List<SpotifyArtist> artists = getFollowedArtist();
+    public List<AlbumSimplified> getReleases(Long releaseOfDay, String authorizationHeader) {
+        List<SpotifyArtist> artists = getFollowedArtist(authorizationHeader);
 
         List<AlbumSimplified> listOfAlbums = new ArrayList<>();
 
@@ -116,8 +118,8 @@ public class SpotifyServiceImpl implements SpotifyService {
     @SneakyThrows
     @Override
     @Transactional
-    public String saveReleasesToPlaylistById(String playlistId, Long releaseOfDay) {
-        List<AlbumSimplified> releases = getReleases(releaseOfDay);
+    public String saveReleasesToPlaylistById(String playlistId, Long releaseOfDay, String authorizationHeader) {
+        List<AlbumSimplified> releases = getReleases(releaseOfDay, authorizationHeader);
         List<String> trackUrl = new ArrayList<>();
         List<SpotifyTrackFromPlaylist> saveTrackToDB = new ArrayList<>();
 
@@ -177,7 +179,7 @@ public class SpotifyServiceImpl implements SpotifyService {
     @SneakyThrows
     @Override
     @Transactional
-    public String deleteAllOfTracksFromPlaylistById(String playlistId) {
+    public String deleteAllOfTracksFromPlaylistById(String playlistId, String authorizationHeader) {
         List<PlaylistTrack> allTracks = new ArrayList<>();
 
         int limit = 50;

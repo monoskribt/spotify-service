@@ -42,10 +42,12 @@ public class SpotifyAuthImpl implements SpotifyAuth {
 
             AuthorizationCodeCredentials credentials = spotifyApi.authorizationCode(code).build().execute();
 
-            spotifyApi.setAccessToken(credentials.getAccessToken());
-            spotifyApi.setRefreshToken(credentials.getRefreshToken());
+            String accessToken = credentials.getAccessToken();
+            String refreshToken = credentials.getRefreshToken();
 
-            return new TokensDTO(credentials.getAccessToken(), credentials.getRefreshToken());
+            spotifyApi.setAccessToken(accessToken);
+
+            return new TokensDTO(accessToken, refreshToken);
 
         } catch (IOException | SpotifyWebApiException | ParseException e) {
             e.printStackTrace();
@@ -62,9 +64,11 @@ public class SpotifyAuthImpl implements SpotifyAuth {
                     .build()
                     .execute();
 
-            spotifyApi.setAccessToken(credentials.getAccessToken());
+            String accessToken = credentials.getAccessToken();
 
-            return new TokensDTO(spotifyApi.getAccessToken(), refreshToken);
+            spotifyApi.setAccessToken(accessToken);
+
+            return new TokensDTO(accessToken, refreshToken);
 
         } catch (IOException | SpotifyWebApiException | ParseException e) {
             e.printStackTrace();
