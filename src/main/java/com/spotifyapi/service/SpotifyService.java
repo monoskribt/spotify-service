@@ -15,9 +15,9 @@ public interface SpotifyService {
 
     List<AlbumSimplified> getReleases(String authorizationHeader);
 
-    List<AlbumSimplified> getReleases(Long releaseOfDay, String authorizationHeader);
+    List<AlbumSimplified> getReleases(String authorizationHeader, Long releaseOfDay);
 
-    String saveReleasesToPlaylistById(String playlistId, Long releaseOfDay, String authorizationHeader);
+    String saveReleasesToPlaylistById(String authorizationHeader, String playlistId, Long releaseOfDay);
 
-    String deleteAllOfTracksFromPlaylistById(String playlistId, String authorizationHeader);
+    String deleteAllOfTracksFromPlaylistById(String authorizationHeader, String playlistId);
 }

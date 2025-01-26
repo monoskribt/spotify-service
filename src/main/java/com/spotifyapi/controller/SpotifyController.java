@@ -30,7 +30,7 @@ public class SpotifyController {
     public List<AlbumSimplified> getReleasesByPeriod(
             @RequestParam (value = "releaseOfDay", required = false) Long releaseOfDay,
             @RequestHeader(value = "Authorization") String authorizationHeader) {
-        return spotifyService.getReleases(releaseOfDay, authorizationHeader);
+        return spotifyService.getReleases(authorizationHeader, releaseOfDay);
     }
 
     @GetMapping("/playlists")
@@ -44,7 +44,7 @@ public class SpotifyController {
                                                          @RequestParam ("releaseOfDay") Long releaseOfDay,
                                                          @RequestHeader(value = "Authorization") String authorizationHeader) {
         try {
-            String result = spotifyService.saveReleasesToPlaylistById(playlistId, releaseOfDay, authorizationHeader);
+            String result = spotifyService.saveReleasesToPlaylistById(authorizationHeader, playlistId, releaseOfDay);
             return ResponseEntity
                     .status(HttpStatus.OK)
                     .body(result);
@@ -57,7 +57,7 @@ public class SpotifyController {
     public ResponseEntity<String> deleteAllItemsFromPlaylistById(@PathVariable("playlistId") String playlistId,
                                                                  @RequestHeader(value = "Authorization") String authorizationHeader) {
         try {
-            String result = spotifyService.deleteAllOfTracksFromPlaylistById(playlistId, authorizationHeader);
+            String result = spotifyService.deleteAllOfTracksFromPlaylistById(authorizationHeader, playlistId);
             return ResponseEntity
                     .status(HttpStatus.OK)
                     .body(result);

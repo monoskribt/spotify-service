@@ -80,12 +80,12 @@ public class SpotifyServiceImpl implements SpotifyService {
     @Override
     @SneakyThrows
     public List<AlbumSimplified> getReleases(String authorizationHeader) {
-        return getReleases(THIRTY_DAYS, authorizationHeader);
+        return getReleases(authorizationHeader, THIRTY_DAYS);
     }
 
     @Override
     @SneakyThrows
-    public List<AlbumSimplified> getReleases(Long releaseOfDay, String authorizationHeader) {
+    public List<AlbumSimplified> getReleases(String authorizationHeader, Long releaseOfDay) {
         List<SpotifyArtist> artists = getFollowedArtist(authorizationHeader);
 
         List<AlbumSimplified> listOfAlbums = new ArrayList<>();
@@ -118,8 +118,8 @@ public class SpotifyServiceImpl implements SpotifyService {
     @SneakyThrows
     @Override
     @Transactional
-    public String saveReleasesToPlaylistById(String playlistId, Long releaseOfDay, String authorizationHeader) {
-        List<AlbumSimplified> releases = getReleases(releaseOfDay, authorizationHeader);
+    public String saveReleasesToPlaylistById(String authorizationHeader, String playlistId, Long releaseOfDay) {
+        List<AlbumSimplified> releases = getReleases(authorizationHeader, releaseOfDay);
         List<String> trackUrl = new ArrayList<>();
         List<SpotifyTrackFromPlaylist> saveTrackToDB = new ArrayList<>();
 
@@ -179,7 +179,7 @@ public class SpotifyServiceImpl implements SpotifyService {
     @SneakyThrows
     @Override
     @Transactional
-    public String deleteAllOfTracksFromPlaylistById(String playlistId, String authorizationHeader) {
+    public String deleteAllOfTracksFromPlaylistById(String authorizationHeader, String playlistId) {
         List<PlaylistTrack> allTracks = new ArrayList<>();
 
         int limit = 50;
