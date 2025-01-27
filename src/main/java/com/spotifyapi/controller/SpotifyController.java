@@ -4,6 +4,7 @@ import com.spotifyapi.model.SpotifyArtist;
 import com.spotifyapi.service.SpotifyService;
 import com.spotifyapi.service.TokenService;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,6 +17,7 @@ import java.util.Set;
 @RestController
 @RequestMapping("/api/spotify")
 @AllArgsConstructor
+@Slf4j
 public class SpotifyController {
 
     private SpotifyService spotifyService;
@@ -49,6 +51,7 @@ public class SpotifyController {
                     .status(HttpStatus.OK)
                     .body(result);
         } catch (Exception e) {
+            log.info("Problem with method in controller {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Something is wrong: " + e.getMessage());
         }
     }
