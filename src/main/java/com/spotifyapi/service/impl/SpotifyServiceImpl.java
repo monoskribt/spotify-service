@@ -3,6 +3,7 @@ package com.spotifyapi.service.impl;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.spotifyapi.exception.PlaylistNotFoundException;
 import com.spotifyapi.mapper.TrackSimplifiedWrapper;
 import com.spotifyapi.model.SpotifyArtist;
 import com.spotifyapi.model.SpotifyTrackFromPlaylist;
@@ -13,6 +14,7 @@ import com.spotifyapi.service.SpotifyService;
 import com.spotifyapi.service.SpotifyTrackService;
 import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -23,6 +25,7 @@ import se.michaelthelin.spotify.model_objects.specification.*;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -31,6 +34,7 @@ import static com.spotifyapi.constant.ConstantResponses.*;
 
 @Service
 @AllArgsConstructor
+@Slf4j
 public class SpotifyServiceImpl implements SpotifyService {
 
     private final SpotifyApi spotifyApi;
@@ -42,7 +46,7 @@ public class SpotifyServiceImpl implements SpotifyService {
 
     @SneakyThrows
     @Override
-    public Set<PlaylistSimplified> getOfUsersPlaylists() {
+    public Set<PlaylistSimplified> getOfUsersPlaylists(String authorizationHeader) {
         return Arrays.stream(spotifyApi.getListOfCurrentUsersPlaylists()
                 .build()
                 .execute().getItems()).collect(Collectors.toSet());
@@ -50,7 +54,9 @@ public class SpotifyServiceImpl implements SpotifyService {
 
     @Override
     @SneakyThrows
-    public List<SpotifyArtist> getFollowedArtist() {
+    public List<SpotifyArtist> getFollowedArtist(String authorizationHeader) {
+
+        
         List<SpotifyArtist> followedArtists = new ArrayList<>();
         int limit = 50;
         String cursor = "0";
@@ -77,18 +83,16 @@ public class SpotifyServiceImpl implements SpotifyService {
 
     @Override
     @SneakyThrows
-    public List<AlbumSimplified> getReleases() {
-        return getReleases(THIRTY_DAYS);
+    public List<AlbumSimplified> getReleases(String authorizationHeader) {
+        return getReleases(authorizationHeader, THIRTY_DAYS);
     }
 
     @Override
     @SneakyThrows
-    public List<AlbumSimplified> getReleases(Long releaseOfDay) {
-        List<SpotifyArtist> artists = getFollowedArtist();
+    public List<AlbumSimplified> getReleases(String authorizationHeader, Long releaseOfDay) {
+        List<SpotifyArtist> artists = getFollowedArtist(authorizationHeader);
 
         List<AlbumSimplified> listOfAlbums = new ArrayList<>();
-
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
         for(SpotifyArtist artist : artists) {
             var album = Arrays.stream(spotifyApi
@@ -97,8 +101,12 @@ public class SpotifyServiceImpl implements SpotifyService {
                             .execute()
                             .getItems())
                     .filter(date -> {
-                        LocalDate releaseDate = LocalDate.parse(date.getReleaseDate(), formatter);
-                        return releaseDate.isAfter(LocalDate.now().minusDays(releaseOfDay));
+                        try {
+                            return LocalDate.parse(date.getReleaseDate()).isAfter(LocalDate.now().minusDays(releaseOfDay));
+                        } catch (DateTimeParseException e) {
+                            log.info("Problem with parse {}", e.getMessage());
+                            return false;
+                        }
                     }).toList();
 
             listOfAlbums.addAll(album);
@@ -116,15 +124,16 @@ public class SpotifyServiceImpl implements SpotifyService {
     @SneakyThrows
     @Override
     @Transactional
-    public String saveReleasesToPlaylistById(String playlistId, Long releaseOfDay) {
-        List<AlbumSimplified> releases = getReleases(releaseOfDay);
+    public String saveReleasesToPlaylistById(String authorizationHeader, String playlistId, Long releaseOfDay) {
+        List<AlbumSimplified> releases = getReleases(authorizationHeader, releaseOfDay);
         List<String> trackUrl = new ArrayList<>();
         List<SpotifyTrackFromPlaylist> saveTrackToDB = new ArrayList<>();
 
-        Optional<SpotifyUserPlaylist> playlist = playlistRepository.findById(playlistId);
+        SpotifyUserPlaylist playlist = playlistRepository.findById(playlistId)
+                .orElseThrow(() -> new PlaylistNotFoundException("Playlist not found"));
 
         Set<String> existingTrackIds = spotifyTrackService
-                .getExistingTrackIds(playlist.get().getId());
+                .getExistingTrackIds(playlist.getId());
 
         boolean checkToAddTrack = false;
 
@@ -144,7 +153,7 @@ public class SpotifyServiceImpl implements SpotifyService {
                         trackUrl.add(track.getUri());
 
                         SpotifyTrackFromPlaylist trackEntity = spotifyTrackService
-                                .convertTrackToTrackDBEntity(new TrackSimplifiedWrapper(track), playlist.get());
+                                .convertTrackToTrackDBEntity(new TrackSimplifiedWrapper(track), playlist);
 
                         saveTrackToDB.add(trackEntity);
                         checkToAddTrack = true;
@@ -177,7 +186,7 @@ public class SpotifyServiceImpl implements SpotifyService {
     @SneakyThrows
     @Override
     @Transactional
-    public String deleteAllOfTracksFromPlaylistById(String playlistId) {
+    public String deleteAllOfTracksFromPlaylistById(String authorizationHeader, String playlistId) {
         List<PlaylistTrack> allTracks = new ArrayList<>();
 
         int limit = 50;

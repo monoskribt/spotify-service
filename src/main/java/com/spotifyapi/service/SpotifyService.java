@@ -9,15 +9,15 @@ import java.util.Set;
 
 public interface SpotifyService {
 
-    Set<PlaylistSimplified> getOfUsersPlaylists();
+    Set<PlaylistSimplified> getOfUsersPlaylists(String authorizationHeader);
 
-    List<SpotifyArtist> getFollowedArtist();
+    List<SpotifyArtist> getFollowedArtist(String authorizationHeader);
 
-    List<AlbumSimplified> getReleases();
+    List<AlbumSimplified> getReleases(String authorizationHeader);
 
-    List<AlbumSimplified> getReleases(Long releaseOfDay);
+    List<AlbumSimplified> getReleases(String authorizationHeader, Long releaseOfDay);
 
-    String saveReleasesToPlaylistById(String playlistId, Long releaseOfDay);
+    String saveReleasesToPlaylistById(String authorizationHeader, String playlistId, Long releaseOfDay);
 
-    String deleteAllOfTracksFromPlaylistById(String playlistId);
+    String deleteAllOfTracksFromPlaylistById(String authorizationHeader, String playlistId);
 }
