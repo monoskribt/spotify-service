@@ -55,7 +55,7 @@ public class SpotifyReleaseServiceImpl implements SpotifyReleaseService {
     }
 
     private Set<SpotifyRelease> checkReleasesForUser(User user) {
-        String authorizationHeader = "";
+        String authorizationHeader = "";//todo ???
         List<AlbumSimplified> albumList = spotifyService.getReleases(authorizationHeader);
 
         List<String> alreadyContainsReleasesId = getReleasesByUserId(user.getId())

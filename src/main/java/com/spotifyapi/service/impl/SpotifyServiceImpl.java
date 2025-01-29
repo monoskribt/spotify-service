@@ -3,6 +3,7 @@ package com.spotifyapi.service.impl;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.neovisionaries.i18n.CountryCode;
 import com.spotifyapi.exception.PlaylistNotFoundException;
 import com.spotifyapi.mapper.TrackSimplifiedWrapper;
 import com.spotifyapi.model.SpotifyArtist;
@@ -24,7 +25,6 @@ import se.michaelthelin.spotify.enums.ModelObjectType;
 import se.michaelthelin.spotify.model_objects.specification.*;
 
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -94,9 +94,27 @@ public class SpotifyServiceImpl implements SpotifyService {
 
         List<AlbumSimplified> listOfAlbums = new ArrayList<>();
 
+//        for (CountryCode value : CountryCode.values()) {
+//            AlbumSimplified[] items = spotifyApi.getListOfNewReleases()
+//                    .country(value)
+//                    .limit(50)
+//                    .build()
+//                    .execute()
+//                    .getItems();
+//
+//
+//            for (AlbumSimplified item : items) {
+//                log.info("Album name: {}", item.getName());
+//            }
+//        }
+
+
+        //todo: add loader on UI, execute operation in parallel or async
+        //todo: add optimization to process the list of artists in parallel
         for(SpotifyArtist artist : artists) {
             var album = Arrays.stream(spotifyApi
                             .getArtistsAlbums(artist.getId())
+                            .album_type()
                             .build()
                             .execute()
                             .getItems())

@@ -4,7 +4,6 @@ import com.spotifyapi.model.Logger;
 import com.spotifyapi.repository.LoggerRepository;
 import com.spotifyapi.service.UserService;
 import lombok.AllArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.AfterReturning;
 import org.aspectj.lang.annotation.AfterThrowing;
@@ -17,13 +16,12 @@ import java.util.Arrays;
 @Aspect
 @Component
 @AllArgsConstructor
-@Slf4j
 public class LoggerAspect {
-
     private final LoggerRepository loggerRepository;
     private final UserService userService;
 
 
+    @AfterReturning(pointcut = "execution(* com.spotifyapi.controller.SpotifyController.*(..))")
     public void afterReturning(JoinPoint joinPoint) {
         String methodName = joinPoint.getSignature().getName();
         String listOfParam = Arrays.toString(joinPoint.getArgs());
@@ -40,7 +38,7 @@ public class LoggerAspect {
         loggerRepository.save(logger);
     }
 
-
+    @AfterThrowing(pointcut = "execution(* com.spotifyapi.controller.SpotifyController.*(..))", throwing = "exception")
     public void afterThrowing(JoinPoint joinPoint, Throwable exception) {
         String methodName = joinPoint.getSignature().getName();
         String listOfParam = Arrays.toString(joinPoint.getArgs());

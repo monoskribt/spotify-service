@@ -2,7 +2,6 @@ package com.spotifyapi.controller;
 
 import com.spotifyapi.model.SpotifyArtist;
 import com.spotifyapi.service.SpotifyService;
-import com.spotifyapi.service.TokenService;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -45,27 +44,18 @@ public class SpotifyController {
     public ResponseEntity<String> saveReleasesToPlaylist(@PathVariable ("playlistId") String playlistId,
                                                          @RequestParam ("releaseOfDay") Long releaseOfDay,
                                                          @RequestHeader(value = "Authorization") String authorizationHeader) {
-        try {
-            String result = spotifyService.saveReleasesToPlaylistById(authorizationHeader, playlistId, releaseOfDay);
-            return ResponseEntity
-                    .status(HttpStatus.OK)
-                    .body(result);
-        } catch (Exception e) {
-            log.info("Problem with method in controller {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Something is wrong: " + e.getMessage());
-        }
+        String result = spotifyService.saveReleasesToPlaylistById(authorizationHeader, playlistId, releaseOfDay);
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(result);
     }
 
     @DeleteMapping("/playlists/{playlistId}/items")
     public ResponseEntity<String> deleteAllItemsFromPlaylistById(@PathVariable("playlistId") String playlistId,
                                                                  @RequestHeader(value = "Authorization") String authorizationHeader) {
-        try {
-            String result = spotifyService.deleteAllOfTracksFromPlaylistById(authorizationHeader, playlistId);
-            return ResponseEntity
-                    .status(HttpStatus.OK)
-                    .body(result);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Something is wrong: " + e.getMessage());
-        }
+        String result = spotifyService.deleteAllOfTracksFromPlaylistById(authorizationHeader, playlistId);
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(result);
     }
 }

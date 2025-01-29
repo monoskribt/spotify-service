@@ -10,7 +10,7 @@ import java.util.UUID;
 @Repository
 public interface TrackRepository extends JpaRepository<SpotifyTrackFromPlaylist, String> {
 
-    boolean existsByIdAndUserPlaylistId(String trackId, String playlistId);
+    boolean existsByIdAndUserPlaylistId(String trackId, String playlistId); //todo delete
 
     List<SpotifyTrackFromPlaylist> findAllByUserPlaylistId(String playlistId);
 

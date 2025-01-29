@@ -17,11 +17,19 @@ public class Logger {
     private Long id;
 
     private String username;
+
     private String userId;
+
     private String methodName;
+
+    @Column(columnDefinition = "TEXT")
     private String parameters;
+
     private LocalDateTime DateTime;
+
+    @Column(columnDefinition = "TEXT")
     private String message;
+
     private String status;
 
 }

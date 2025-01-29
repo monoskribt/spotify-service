@@ -36,9 +36,10 @@ public class ProjectController {
 
         if(!userService.isAlreadyExist()) {
             userService.saveUserOfData(tokens);
-
         }
-
+        else {
+            userService.updateUserData();
+        }
         response.sendRedirect(redirectUrl);
     }
 }

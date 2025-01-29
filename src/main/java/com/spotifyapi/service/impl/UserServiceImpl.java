@@ -3,6 +3,7 @@ package com.spotifyapi.service.impl;
 
 import com.spotifyapi.dto.TokensDTO;
 import com.spotifyapi.enums.SubscribeStatus;
+import com.spotifyapi.exception.SpotifyApiException;
 import com.spotifyapi.exception.UserNotFoundException;
 import com.spotifyapi.mapper.TrackWrapper;
 import com.spotifyapi.model.SpotifyTrackFromPlaylist;
@@ -16,6 +17,7 @@ import com.spotifyapi.service.SpotifyTrackService;
 import com.spotifyapi.service.UserService;
 import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.hc.core5.http.ParseException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +33,7 @@ import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
+@Slf4j
 public class UserServiceImpl implements UserService {
 
     private final SpotifyApi spotifyApi;
@@ -93,8 +96,47 @@ public class UserServiceImpl implements UserService {
 
 
         } catch (IOException | SpotifyWebApiException | ParseException e) {
-            e.printStackTrace();
+            log.error("Error while saving of user data: {}", e.getMessage());
+            throw new SpotifyApiException("Error while saving of user data: " + e.getMessage());
         }
+    }
+
+
+    @SneakyThrows
+    @Override
+    public void updateUserData() {
+        User user = userRepository.findById(spotifyApi.getCurrentUsersProfile().build().execute().getId())
+                .orElseThrow(() -> new UserNotFoundException("User not found in DB"));
+
+        List<PlaylistSimplified> getAllPlaylists = Arrays.stream(spotifyApi
+                .getListOfCurrentUsersPlaylists().build().execute().getItems()).toList();
+
+        List<SpotifyTrackFromPlaylist> newTracks = new ArrayList<>();
+
+        for(PlaylistSimplified playlist : getAllPlaylists) {
+            Optional<SpotifyUserPlaylist> existingPlaylist = playlistRepository.findById(playlist.getId());
+
+            if(existingPlaylist.isPresent()) {
+                SpotifyUserPlaylist currentPlaylist = existingPlaylist.get();
+                Set<String> playlistTracksUrl = spotifyTrackService.getExistingTrackIds(currentPlaylist.getId());
+                var tracksFromPlaylist = spotifyApi.getPlaylistsItems(currentPlaylist.getId())
+                        .build().execute();
+
+                for(PlaylistTrack track : tracksFromPlaylist.getItems()) {
+                    if(!playlistTracksUrl.contains(track.getTrack().getId())) {
+                        SpotifyTrackFromPlaylist trackEntity =
+                                spotifyTrackService
+                                        .convertTrackToTrackDBEntity(
+                                                new TrackWrapper((Track) track.getTrack()), currentPlaylist);
+                        newTracks.add(trackEntity);
+                    }
+                }
+            }
+            else {
+                playlistService.savePlaylistToDatabase(playlist, user);
+            }
+        }
+        trackRepository.saveAll(newTracks);
     }
 
     @Override

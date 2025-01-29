@@ -10,6 +10,8 @@ public interface UserService {
 
     void saveUserOfData(TokensDTO tokens);
 
+    void updateUserData();
+
     void manageSubscribeStatusOfUser(SubscribeStatus status);
 
     Set<User> getAllUsersWithSubscribeStatus();
