@@ -12,9 +12,7 @@ import com.spotifyapi.model.User;
 import com.spotifyapi.repository.PlaylistRepository;
 import com.spotifyapi.repository.TrackRepository;
 import com.spotifyapi.repository.UserRepository;
-import com.spotifyapi.service.SpotifyPlaylistService;
-import com.spotifyapi.service.SpotifyTrackService;
-import com.spotifyapi.service.UserService;
+import com.spotifyapi.service.*;
 import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +26,7 @@ import se.michaelthelin.spotify.model_objects.specification.PlaylistTrack;
 import se.michaelthelin.spotify.model_objects.specification.Track;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -42,6 +41,8 @@ public class UserServiceImpl implements UserService {
     private final SpotifyTrackService spotifyTrackService;
     private final PlaylistRepository playlistRepository;
     private final TrackRepository trackRepository;
+    private final TokenService tokenService;
+    private final SpotifyAuth spotifyAuth;
 
     @Transactional
     @Override
@@ -54,6 +55,11 @@ public class UserServiceImpl implements UserService {
             newUser.setUsername(userProfile.getDisplayName());
             newUser.setEmail(userProfile.getEmail());
             newUser.setId(userProfile.getId());
+            newUser.setAccessToken("Bearer " + tokens.getAccessToken());
+            newUser.setRefreshToken(tokens.getRefreshToken());
+
+            Instant expiresAt = Instant.now().plusSeconds(3600);
+            newUser.setExpiresAccessTokenAt(expiresAt);
 
             userRepository.save(newUser);
 
@@ -104,9 +110,15 @@ public class UserServiceImpl implements UserService {
 
     @SneakyThrows
     @Override
-    public void updateUserData() {
+    public void updateUserData(TokensDTO tokensDTO) {
         User user = userRepository.findById(spotifyApi.getCurrentUsersProfile().build().execute().getId())
                 .orElseThrow(() -> new UserNotFoundException("User not found in DB"));
+
+        user.setAccessToken("Bearer " + tokensDTO.getAccessToken());
+        user.setRefreshToken(tokensDTO.getRefreshToken());
+
+        Instant expiresAt = Instant.now().plusSeconds(3600);
+        user.setExpiresAccessTokenAt(expiresAt);
 
         List<PlaylistSimplified> getAllPlaylists = Arrays.stream(spotifyApi
                 .getListOfCurrentUsersPlaylists().build().execute().getItems()).toList();
@@ -137,6 +149,7 @@ public class UserServiceImpl implements UserService {
             }
         }
         trackRepository.saveAll(newTracks);
+        userRepository.save(user);
     }
 
     @Override
@@ -176,6 +189,24 @@ public class UserServiceImpl implements UserService {
     public String getCurrentId() {
         var profile = spotifyApi.getCurrentUsersProfile().build().execute();
         return profile.getId();
+    }
+
+    public String checkAndGetAccessToken(User u) {
+        String accessToken = u.getAccessToken();
+
+        if(tokenService.isValidAccessToken(u)) {
+            return accessToken;
+        } else {
+            obtainNewAccessToken(u);
+            return u.getAccessToken();
+        }
+    }
+
+
+    public void obtainNewAccessToken(User u) {
+        TokensDTO tokensDTO = spotifyAuth.getNewAccessToken(u.getRefreshToken());
+        String newAccessToken = tokensDTO.getAccessToken();
+        u.setAccessToken(newAccessToken);
     }
 
     @SneakyThrows

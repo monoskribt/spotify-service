@@ -3,7 +3,6 @@ package com.spotifyapi.service.impl;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import com.neovisionaries.i18n.CountryCode;
 import com.spotifyapi.exception.PlaylistNotFoundException;
 import com.spotifyapi.mapper.TrackSimplifiedWrapper;
 import com.spotifyapi.model.SpotifyArtist;
@@ -18,8 +17,11 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import reactor.core.publisher.Mono;
 import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.enums.ModelObjectType;
 import se.michaelthelin.spotify.model_objects.specification.*;
@@ -27,6 +29,7 @@ import se.michaelthelin.spotify.model_objects.specification.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.*;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 import static com.spotifyapi.constant.ConstantDayForReleases.THIRTY_DAYS;
@@ -34,6 +37,7 @@ import static com.spotifyapi.constant.ConstantResponses.*;
 
 @Service
 @AllArgsConstructor
+@EnableAsync
 @Slf4j
 public class SpotifyServiceImpl implements SpotifyService {
 
@@ -87,54 +91,67 @@ public class SpotifyServiceImpl implements SpotifyService {
         return getReleases(authorizationHeader, THIRTY_DAYS);
     }
 
+    @SneakyThrows
+    private List<AlbumSimplified> getAlbumsForArtist(SpotifyArtist artist, Long releaseOfDay) {
+        return Arrays.stream(spotifyApi.getArtistsAlbums(artist.getId())
+                        .build()
+                        .execute()
+                        .getItems())
+                .filter(date -> {
+                    try {
+                        return LocalDate.parse(date.getReleaseDate()).isAfter(LocalDate.now().minusDays(releaseOfDay));
+                    } catch (DateTimeParseException e) {
+                        log.info("Problem with parse {}", e.getMessage());
+                        return false;
+                    }
+                })
+                .toList();
+    }
+
+
     @Override
     @SneakyThrows
     public List<AlbumSimplified> getReleases(String authorizationHeader, Long releaseOfDay) {
         List<SpotifyArtist> artists = getFollowedArtist(authorizationHeader);
 
-        List<AlbumSimplified> listOfAlbums = new ArrayList<>();
-
-//        for (CountryCode value : CountryCode.values()) {
-//            AlbumSimplified[] items = spotifyApi.getListOfNewReleases()
-//                    .country(value)
-//                    .limit(50)
-//                    .build()
-//                    .execute()
-//                    .getItems();
-//
-//
-//            for (AlbumSimplified item : items) {
-//                log.info("Album name: {}", item.getName());
-//            }
-//        }
-
-
-        //todo: add loader on UI, execute operation in parallel or async
-        //todo: add optimization to process the list of artists in parallel
-        for(SpotifyArtist artist : artists) {
-            var album = Arrays.stream(spotifyApi
-                            .getArtistsAlbums(artist.getId())
-                            .album_type()
-                            .build()
-                            .execute()
-                            .getItems())
-                    .filter(date -> {
-                        try {
-                            return LocalDate.parse(date.getReleaseDate()).isAfter(LocalDate.now().minusDays(releaseOfDay));
-                        } catch (DateTimeParseException e) {
-                            log.info("Problem with parse {}", e.getMessage());
-                            return false;
-                        }
-                    }).toList();
-
-            listOfAlbums.addAll(album);
+        if (artists == null || artists.isEmpty()) {
+            log.info("No artists found for the user");
+            return Collections.emptyList();
         }
 
-        return listOfAlbums
-                .stream()
+        ExecutorService executorService = Executors.newFixedThreadPool(10);
+        List<Callable<List<AlbumSimplified>>> tasks = artists.stream()
+                .map(artist -> (Callable<List<AlbumSimplified>>) () -> getAlbumsForArtist(artist, releaseOfDay))
+                .toList();
+
+        List<Future<List<AlbumSimplified>>> futures = executorService.invokeAll(tasks);
+
+        List<AlbumSimplified> listOfAlbums = new ArrayList<>();
+        for (Future<List<AlbumSimplified>> future : futures) {
+            try {
+                List<AlbumSimplified> albums = future.get();
+                if (albums != null && !albums.isEmpty()) {
+                    listOfAlbums.addAll(albums);
+                } else {
+                    log.info("No albums returned for one artist.");
+                }
+            } catch (InterruptedException | ExecutionException e) {
+                log.warn("Error while fetching albums: ", e);
+            }
+        }
+
+        executorService.shutdown();
+
+        if (listOfAlbums.isEmpty()) {
+            log.info("No albums found after processing all artists.");
+        }
+
+
+        return listOfAlbums.stream()
                 .sorted(Comparator.comparing(AlbumSimplified::getReleaseDate))
                 .toList();
     }
+
 
 
 

@@ -22,12 +22,10 @@ public class Logger {
 
     private String methodName;
 
-    @Column(columnDefinition = "TEXT")
     private String parameters;
 
     private LocalDateTime DateTime;
 
-    @Column(columnDefinition = "TEXT")
     private String message;
 
     private String status;

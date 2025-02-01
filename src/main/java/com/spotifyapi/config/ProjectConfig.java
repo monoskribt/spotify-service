@@ -19,9 +19,9 @@ public class ProjectConfig {
     @Bean
     public SpotifyApi spotifyApi() {
         return new SpotifyApi.Builder()
-                .setClientId(spotifyProps.getClientId())
-                .setClientSecret(spotifyProps.getClientSecret())
-                .setRedirectUri(URI.create(spotifyProps.getRedirectUrl()))
+                .setClientId(spotifyProps.clientId())
+                .setClientSecret(spotifyProps.clientSecret())
+                .setRedirectUri(URI.create(spotifyProps.redirectUrl()))
                 .build();
     }
 

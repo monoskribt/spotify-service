@@ -10,7 +10,7 @@ public interface UserService {
 
     void saveUserOfData(TokensDTO tokens);
 
-    void updateUserData();
+    void updateUserData(TokensDTO tokens);
 
     void manageSubscribeStatusOfUser(SubscribeStatus status);
 
@@ -21,6 +21,10 @@ public interface UserService {
     String getCurrentUsername();
 
     String getCurrentId();
+
+    String checkAndGetAccessToken(User u);
+
+    void obtainNewAccessToken(User u);
 
     boolean isAlreadyExist();
 }

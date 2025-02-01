@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.Instant;
 import java.util.List;
 
 @Entity
@@ -24,8 +25,16 @@ public class User {
     private String email;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, name = "subscribe_status", columnDefinition = "varchar(255) default 'UNSUBSCRIBE'")
-    private SubscribeStatus subscribeStatus = SubscribeStatus.UNSUBSCRIBE;
+    @Column(nullable = false, name = "subscribe_status", columnDefinition = "varchar(255) default 'SUBSCRIBE'")
+    private SubscribeStatus subscribeStatus = SubscribeStatus.SUBSCRIBE;
+
+    @Column(name = "access_token", length = 315)
+    private String accessToken;
+
+    @Column(name = "refresh_token", length = 200)
+    private String refreshToken;
+
+    private Instant expiresAccessTokenAt;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<SpotifyUserPlaylist> userPlaylists;

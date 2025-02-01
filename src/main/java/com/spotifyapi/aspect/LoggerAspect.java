@@ -24,13 +24,11 @@ public class LoggerAspect {
     @AfterReturning(pointcut = "execution(* com.spotifyapi.controller.SpotifyController.*(..))")
     public void afterReturning(JoinPoint joinPoint) {
         String methodName = joinPoint.getSignature().getName();
-        String listOfParam = Arrays.toString(joinPoint.getArgs());
 
         Logger logger = new Logger();
         logger.setUsername(userService.getCurrentUsername());
         logger.setUserId(userService.getCurrentId());
         logger.setMethodName(methodName);
-        logger.setParameters(listOfParam);
         logger.setDateTime(LocalDateTime.now());
         logger.setMessage("Successfully");
         logger.setStatus("SUCCESS");
@@ -41,18 +39,22 @@ public class LoggerAspect {
     @AfterThrowing(pointcut = "execution(* com.spotifyapi.controller.SpotifyController.*(..))", throwing = "exception")
     public void afterThrowing(JoinPoint joinPoint, Throwable exception) {
         String methodName = joinPoint.getSignature().getName();
-        String listOfParam = Arrays.toString(joinPoint.getArgs());
         String exceptionMessage = exception.toString();
 
         Logger logger = new Logger();
         logger.setUsername(userService.getCurrentUsername());
         logger.setUserId(userService.getCurrentId());
         logger.setMethodName(methodName);
-        logger.setParameters(listOfParam);
         logger.setDateTime(LocalDateTime.now());
         logger.setMessage("Failed. Exception: " + exceptionMessage);
         logger.setStatus("FAILED");
 
         loggerRepository.save(logger);
+    }
+
+
+
+    private String truncate(String value) {
+        return value.length() > 250 ? value.substring(0, 250) + "." : value;
     }
 }
