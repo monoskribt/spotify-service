@@ -25,8 +25,8 @@ public class User {
     private String email;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, name = "subscribe_status", columnDefinition = "varchar(255) default 'SUBSCRIBE'")
-    private SubscribeStatus subscribeStatus = SubscribeStatus.SUBSCRIBE;
+    @Column(nullable = false, name = "subscribe_status", columnDefinition = "varchar(255) default 'UNSUBSCRIBE'")
+    private SubscribeStatus subscribeStatus = SubscribeStatus.UNSUBSCRIBE;
 
     @Column(name = "access_token", length = 315)
     private String accessToken;
@@ -35,6 +35,7 @@ public class User {
     private String refreshToken;
 
     private Instant expiresAccessTokenAt;
+    private Instant expiresRefreshTokenAt;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<SpotifyUserPlaylist> userPlaylists;

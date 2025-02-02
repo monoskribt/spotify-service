@@ -58,7 +58,7 @@ public class SpotifyReleaseServiceImpl implements SpotifyReleaseService {
     }
 
     public Set<SpotifyRelease> checkReleasesForUser(User user) {
-        String authorizationHeader = userService.checkAndGetAccessToken(user);
+        String authorizationHeader = userService.getAccessTokenFromDB(user);
         log.info("is working method checkReleasesForUser with token: {}", authorizationHeader );
         List<AlbumSimplified> albumList = spotifyService.getReleases(authorizationHeader);
 

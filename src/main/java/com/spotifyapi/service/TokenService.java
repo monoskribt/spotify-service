@@ -7,6 +7,10 @@ public interface TokenService {
 
     String extractAccessToken(String authorizationHeader);
 
+    void getNewAccessToken(User u);
+
     boolean isValidAccessToken(User u);
+
+    boolean isValidRefreshToken(User u);
 
 }

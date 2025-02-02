@@ -22,9 +22,7 @@ public interface UserService {
 
     String getCurrentId();
 
-    String checkAndGetAccessToken(User u);
-
-    void obtainNewAccessToken(User u);
+    String getAccessTokenFromDB(User u);
 
     boolean isAlreadyExist();
 }

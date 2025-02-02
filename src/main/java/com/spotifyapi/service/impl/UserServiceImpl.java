@@ -30,6 +30,9 @@ import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.spotifyapi.constant.ConstantExpireTokenTime.ONE_HOUR;
+import static com.spotifyapi.constant.ConstantExpireTokenTime.ONE_WEEK;
+
 @Service
 @AllArgsConstructor
 @Slf4j
@@ -58,8 +61,8 @@ public class UserServiceImpl implements UserService {
             newUser.setAccessToken("Bearer " + tokens.getAccessToken());
             newUser.setRefreshToken(tokens.getRefreshToken());
 
-            Instant expiresAt = Instant.now().plusSeconds(3600);
-            newUser.setExpiresAccessTokenAt(expiresAt);
+            newUser.setExpiresAccessTokenAt(Instant.now().plusSeconds(ONE_HOUR));
+            newUser.setExpiresRefreshTokenAt(Instant.now().plusSeconds(ONE_WEEK));
 
             userRepository.save(newUser);
 
@@ -117,8 +120,8 @@ public class UserServiceImpl implements UserService {
         user.setAccessToken("Bearer " + tokensDTO.getAccessToken());
         user.setRefreshToken(tokensDTO.getRefreshToken());
 
-        Instant expiresAt = Instant.now().plusSeconds(3600);
-        user.setExpiresAccessTokenAt(expiresAt);
+        user.setExpiresAccessTokenAt(Instant.now().plusSeconds(ONE_HOUR));
+        user.setExpiresRefreshTokenAt(Instant.now().plusSeconds(ONE_WEEK));
 
         List<PlaylistSimplified> getAllPlaylists = Arrays.stream(spotifyApi
                 .getListOfCurrentUsersPlaylists().build().execute().getItems()).toList();
@@ -191,22 +194,15 @@ public class UserServiceImpl implements UserService {
         return profile.getId();
     }
 
-    public String checkAndGetAccessToken(User u) {
+    public String getAccessTokenFromDB(User u) {
         String accessToken = u.getAccessToken();
 
         if(tokenService.isValidAccessToken(u)) {
             return accessToken;
         } else {
-            obtainNewAccessToken(u);
+            tokenService.getNewAccessToken(u);
             return u.getAccessToken();
         }
-    }
-
-
-    public void obtainNewAccessToken(User u) {
-        TokensDTO tokensDTO = spotifyAuth.getNewAccessToken(u.getRefreshToken());
-        String newAccessToken = tokensDTO.getAccessToken();
-        u.setAccessToken(newAccessToken);
     }
 
     @SneakyThrows
