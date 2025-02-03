@@ -2,16 +2,13 @@ package com.spotifyapi.service.impl;
 
 import com.spotifyapi.dto.TokensDTO;
 import com.spotifyapi.model.User;
-import com.spotifyapi.props.SpotifyProps;
 import com.spotifyapi.service.SpotifyAuth;
 import com.spotifyapi.service.TokenService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
-import se.michaelthelin.spotify.SpotifyApi;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -28,8 +25,8 @@ public class TokenServiceImpl implements TokenService {
     @Override
     public String extractAccessToken(String authorizationHeader) {
         return Optional.ofNullable(authorizationHeader)
-                .filter(token -> token.startsWith("Bearer "))
-                .map(header -> header.substring(7))
+                .filter(token -> token.startsWith("access_token "))
+                .map(header -> header.substring(13))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid Authorization header"));
     }
 

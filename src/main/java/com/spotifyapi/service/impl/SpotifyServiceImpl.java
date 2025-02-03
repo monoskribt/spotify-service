@@ -128,6 +128,11 @@ public class SpotifyServiceImpl implements SpotifyService {
                     }).toList();
 
             listOfAlbums.addAll(albums);
+
+            log.info("Sending progress: processedArtists = {}, totalArtists = {}", processedArtists, totalArtists);
+            messagingTemplate
+                    .convertAndSend("/topic/progress",
+                            new ProgressArtistsUpdate(processedArtists.incrementAndGet(), totalArtists));
         }
         return listOfAlbums
                 .stream()
