@@ -1,8 +1,11 @@
 package com.spotifyapi.service.impl;
 
 import com.spotifyapi.dto.TokensDTO;
+import com.spotifyapi.exception.SpotifyAuthException;
 import com.spotifyapi.service.SpotifyAuth;
+import com.spotifyapi.service.UserService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.hc.core5.http.ParseException;
 import org.springframework.stereotype.Service;
 import se.michaelthelin.spotify.SpotifyApi;
@@ -16,6 +19,7 @@ import static se.michaelthelin.spotify.enums.AuthorizationScope.*;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class SpotifyAuthImpl implements SpotifyAuth {
 
     private final SpotifyApi spotifyApi;
@@ -26,11 +30,8 @@ public class SpotifyAuthImpl implements SpotifyAuth {
                 .scope(USER_LIBRARY_READ,
                         USER_LIBRARY_MODIFY,
                         USER_FOLLOW_READ,
-                        USER_FOLLOW_MODIFY,
-                        PLAYLIST_MODIFY_PRIVATE,
                         PLAYLIST_MODIFY_PUBLIC,
                         USER_READ_EMAIL)
-                .show_dialog(true)
                 .build()
                 .execute()
                 .toString();
@@ -50,8 +51,8 @@ public class SpotifyAuthImpl implements SpotifyAuth {
             return new TokensDTO(accessToken, refreshToken);
 
         } catch (IOException | SpotifyWebApiException | ParseException e) {
-            e.printStackTrace();
-            throw new RuntimeException("Error retrieving tokens: " + e.getMessage());
+            log.error("Error retrieving authorization tokens", e);
+            throw new SpotifyAuthException("Invalid authorization code");
         }
     }
 
@@ -71,8 +72,8 @@ public class SpotifyAuthImpl implements SpotifyAuth {
             return new TokensDTO(accessToken, refreshToken);
 
         } catch (IOException | SpotifyWebApiException | ParseException e) {
-            e.printStackTrace();
-            throw new RuntimeException("Error retrieving tokens: " + e.getMessage());
+            log.error("Error retrieving authorization tokens", e);
+            throw new SpotifyAuthException("Invalid refresh token");
         }
     }
 }

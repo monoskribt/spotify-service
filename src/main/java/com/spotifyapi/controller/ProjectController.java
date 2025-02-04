@@ -30,15 +30,16 @@ public class ProjectController {
     public void getProfile(@RequestParam String code, HttpServletResponse response) throws IOException {
         TokensDTO tokens = spotifyAuth.getAuthorizationTokens(code);
 
-        String redirectUrl = corsProps.getAllowedOrigins()
+        String redirectUrl = corsProps.allowedOrigins()
                 + "?access_token=" + tokens.getAccessToken()
                 + "&refresh_token=" + tokens.getRefreshToken();
 
         if(!userService.isAlreadyExist()) {
             userService.saveUserOfData(tokens);
-
         }
-
+        else {
+            userService.updateUserData(tokens);
+        }
         response.sendRedirect(redirectUrl);
     }
 }

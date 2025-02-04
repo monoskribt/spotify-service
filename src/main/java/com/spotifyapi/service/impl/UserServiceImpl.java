@@ -3,6 +3,7 @@ package com.spotifyapi.service.impl;
 
 import com.spotifyapi.dto.TokensDTO;
 import com.spotifyapi.enums.SubscribeStatus;
+import com.spotifyapi.exception.SpotifyApiException;
 import com.spotifyapi.exception.UserNotFoundException;
 import com.spotifyapi.mapper.TrackWrapper;
 import com.spotifyapi.model.SpotifyTrackFromPlaylist;
@@ -11,11 +12,10 @@ import com.spotifyapi.model.User;
 import com.spotifyapi.repository.PlaylistRepository;
 import com.spotifyapi.repository.TrackRepository;
 import com.spotifyapi.repository.UserRepository;
-import com.spotifyapi.service.SpotifyPlaylistService;
-import com.spotifyapi.service.SpotifyTrackService;
-import com.spotifyapi.service.UserService;
+import com.spotifyapi.service.*;
 import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.hc.core5.http.ParseException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,11 +26,16 @@ import se.michaelthelin.spotify.model_objects.specification.PlaylistTrack;
 import se.michaelthelin.spotify.model_objects.specification.Track;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.spotifyapi.constant.ConstantExpireTokenTime.ONE_HOUR;
+import static com.spotifyapi.constant.ConstantExpireTokenTime.ONE_WEEK;
+
 @Service
 @AllArgsConstructor
+@Slf4j
 public class UserServiceImpl implements UserService {
 
     private final SpotifyApi spotifyApi;
@@ -39,6 +44,8 @@ public class UserServiceImpl implements UserService {
     private final SpotifyTrackService spotifyTrackService;
     private final PlaylistRepository playlistRepository;
     private final TrackRepository trackRepository;
+    private final TokenService tokenService;
+    private final SpotifyAuth spotifyAuth;
 
     @Transactional
     @Override
@@ -51,6 +58,11 @@ public class UserServiceImpl implements UserService {
             newUser.setUsername(userProfile.getDisplayName());
             newUser.setEmail(userProfile.getEmail());
             newUser.setId(userProfile.getId());
+            newUser.setAccessToken("Bearer " + tokens.getAccessToken());
+            newUser.setRefreshToken(tokens.getRefreshToken());
+
+            newUser.setExpiresAccessTokenAt(Instant.now().plusSeconds(ONE_HOUR));
+            newUser.setExpiresRefreshTokenAt(Instant.now().plusSeconds(ONE_WEEK));
 
             userRepository.save(newUser);
 
@@ -93,8 +105,54 @@ public class UserServiceImpl implements UserService {
 
 
         } catch (IOException | SpotifyWebApiException | ParseException e) {
-            e.printStackTrace();
+            log.error("Error while saving of user data: {}", e.getMessage());
+            throw new SpotifyApiException("Error while saving of user data: " + e.getMessage());
         }
+    }
+
+
+    @SneakyThrows
+    @Override
+    public void updateUserData(TokensDTO tokensDTO) {
+        User user = userRepository.findById(spotifyApi.getCurrentUsersProfile().build().execute().getId())
+                .orElseThrow(() -> new UserNotFoundException("User not found in DB"));
+
+        user.setAccessToken("Bearer " + tokensDTO.getAccessToken());
+        user.setRefreshToken(tokensDTO.getRefreshToken());
+
+        user.setExpiresAccessTokenAt(Instant.now().plusSeconds(ONE_HOUR));
+        user.setExpiresRefreshTokenAt(Instant.now().plusSeconds(ONE_WEEK));
+
+        List<PlaylistSimplified> getAllPlaylists = Arrays.stream(spotifyApi
+                .getListOfCurrentUsersPlaylists().build().execute().getItems()).toList();
+
+        List<SpotifyTrackFromPlaylist> newTracks = new ArrayList<>();
+
+        for(PlaylistSimplified playlist : getAllPlaylists) {
+            Optional<SpotifyUserPlaylist> existingPlaylist = playlistRepository.findById(playlist.getId());
+
+            if(existingPlaylist.isPresent()) {
+                SpotifyUserPlaylist currentPlaylist = existingPlaylist.get();
+                Set<String> playlistTracksUrl = spotifyTrackService.getExistingTrackIds(currentPlaylist.getId());
+                var tracksFromPlaylist = spotifyApi.getPlaylistsItems(currentPlaylist.getId())
+                        .build().execute();
+
+                for(PlaylistTrack track : tracksFromPlaylist.getItems()) {
+                    if(!playlistTracksUrl.contains(track.getTrack().getId())) {
+                        SpotifyTrackFromPlaylist trackEntity =
+                                spotifyTrackService
+                                        .convertTrackToTrackDBEntity(
+                                                new TrackWrapper((Track) track.getTrack()), currentPlaylist);
+                        newTracks.add(trackEntity);
+                    }
+                }
+            }
+            else {
+                playlistService.savePlaylistToDatabase(playlist, user);
+            }
+        }
+        trackRepository.saveAll(newTracks);
+        userRepository.save(user);
     }
 
     @Override
@@ -134,6 +192,17 @@ public class UserServiceImpl implements UserService {
     public String getCurrentId() {
         var profile = spotifyApi.getCurrentUsersProfile().build().execute();
         return profile.getId();
+    }
+
+    public String getAccessTokenFromDB(User u) {
+        String accessToken = u.getAccessToken();
+
+        if(tokenService.isValidAccessToken(u)) {
+            return accessToken;
+        } else {
+            tokenService.getNewAccessToken(u);
+            return u.getAccessToken();
+        }
     }
 
     @SneakyThrows

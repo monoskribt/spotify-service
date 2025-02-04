@@ -21,5 +21,6 @@ public class AccessTokenAspect {
             String accessToken = tokenService.extractAccessToken(authorizationHeader);
             spotifyApi.setAccessToken(accessToken);
     }
+
 }
 

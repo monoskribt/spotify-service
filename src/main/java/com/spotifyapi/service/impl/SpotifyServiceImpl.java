@@ -5,6 +5,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.spotifyapi.exception.PlaylistNotFoundException;
 import com.spotifyapi.mapper.TrackSimplifiedWrapper;
+import com.spotifyapi.model.ProgressArtistsUpdate;
 import com.spotifyapi.model.SpotifyArtist;
 import com.spotifyapi.model.SpotifyTrackFromPlaylist;
 import com.spotifyapi.model.SpotifyUserPlaylist;
@@ -17,6 +18,8 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import se.michaelthelin.spotify.SpotifyApi;
@@ -27,6 +30,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import static com.spotifyapi.constant.ConstantDayForReleases.THIRTY_DAYS;
@@ -34,6 +38,7 @@ import static com.spotifyapi.constant.ConstantResponses.*;
 
 @Service
 @AllArgsConstructor
+@EnableAsync
 @Slf4j
 public class SpotifyServiceImpl implements SpotifyService {
 
@@ -41,6 +46,7 @@ public class SpotifyServiceImpl implements SpotifyService {
     private final PlaylistRepository playlistRepository;
     private final SpotifyTrackService spotifyTrackService;
     private final TrackRepository trackRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     private static final Logger logger = LoggerFactory.getLogger(SpotifyServiceImpl.class);
 
@@ -94,29 +100,48 @@ public class SpotifyServiceImpl implements SpotifyService {
 
         List<AlbumSimplified> listOfAlbums = new ArrayList<>();
 
-        for(SpotifyArtist artist : artists) {
-            var album = Arrays.stream(spotifyApi
+        DateTimeFormatter yearFormatter = DateTimeFormatter.ofPattern("yyyy");
+        DateTimeFormatter yearMonthDayFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+        int totalArtists = artists.size();
+        AtomicInteger processedArtists = new AtomicInteger(0);
+
+        for (SpotifyArtist artist : artists) {
+            var albums = Arrays.stream(spotifyApi
                             .getArtistsAlbums(artist.getId())
                             .build()
                             .execute()
                             .getItems())
-                    .filter(date -> {
+                    .filter(album -> {
                         try {
-                            return LocalDate.parse(date.getReleaseDate()).isAfter(LocalDate.now().minusDays(releaseOfDay));
+                            LocalDate releaseDate;
+                            if (album.getReleaseDate().length() == 4) {
+                                releaseDate = LocalDate.parse(album.getReleaseDate(), yearFormatter);
+                            } else {
+                                releaseDate = LocalDate.parse(album.getReleaseDate(), yearMonthDayFormatter);
+                            }
+                            return releaseDate.isAfter(LocalDate.now().minusDays(releaseOfDay));
                         } catch (DateTimeParseException e) {
                             log.info("Problem with parse {}", e.getMessage());
                             return false;
                         }
                     }).toList();
 
-            listOfAlbums.addAll(album);
-        }
+            listOfAlbums.addAll(albums);
 
+            log.info("Sending progress: processedArtists = {}, totalArtists = {}", processedArtists, totalArtists);
+            messagingTemplate
+                    .convertAndSend("/topic/progress",
+                            new ProgressArtistsUpdate(processedArtists.incrementAndGet(), totalArtists));
+        }
         return listOfAlbums
                 .stream()
                 .sorted(Comparator.comparing(AlbumSimplified::getReleaseDate))
                 .toList();
     }
+
+
+
 
 
 

@@ -8,6 +8,7 @@ import com.spotifyapi.service.SpotifyReleaseService;
 import com.spotifyapi.service.SpotifyService;
 import com.spotifyapi.service.UserService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -19,6 +20,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class SpotifyReleaseServiceImpl implements SpotifyReleaseService {
 
     private final ReleaseRepository releaseRepository;
@@ -41,6 +43,7 @@ public class SpotifyReleaseServiceImpl implements SpotifyReleaseService {
     @Override
     public void checkReleasesForAllUsers() {
         Set<User> userList = userService.getAllUsersWithSubscribeStatus();
+        log.info("is working method checkReleasesForAllUsers");
 
         Map<User, Set<SpotifyRelease>> userReleases = userList.stream()
                 .collect(Collectors.toMap(
@@ -54,8 +57,9 @@ public class SpotifyReleaseServiceImpl implements SpotifyReleaseService {
                         .sendMessageToTelegram(notification.getKey(), notification.getValue()));
     }
 
-    private Set<SpotifyRelease> checkReleasesForUser(User user) {
-        String authorizationHeader = "";
+    public Set<SpotifyRelease> checkReleasesForUser(User user) {
+        String authorizationHeader = userService.getAccessTokenFromDB(user);
+        log.info("is working method checkReleasesForUser with token: {}", authorizationHeader );
         List<AlbumSimplified> albumList = spotifyService.getReleases(authorizationHeader);
 
         List<String> alreadyContainsReleasesId = getReleasesByUserId(user.getId())
