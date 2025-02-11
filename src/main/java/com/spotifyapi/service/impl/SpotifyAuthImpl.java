@@ -3,7 +3,6 @@ package com.spotifyapi.service.impl;
 import com.spotifyapi.dto.TokensDTO;
 import com.spotifyapi.exception.SpotifyAuthException;
 import com.spotifyapi.service.SpotifyAuth;
-import com.spotifyapi.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.hc.core5.http.ParseException;
