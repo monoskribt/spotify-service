@@ -4,6 +4,7 @@ public class ConstantResponses {
 
     public static final String SUCCESSFULLY_ADDED = "Successfully added";
     public static final String SUCCESSFULLY_REMOVED = "Successfully removed";
+    public static final String NOTHING_SAVE_TO_DB = "Nothing save to DB. List with releases is Empty!";
 
     public static final String RELEASE_IS_ALREADY_EXIST = "Releases are already in your playlist";
 
