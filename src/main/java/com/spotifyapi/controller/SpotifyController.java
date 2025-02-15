@@ -3,15 +3,13 @@ package com.spotifyapi.controller;
 import com.spotifyapi.dto.spotify_entity.SpotifyArtistDTO;
 import com.spotifyapi.dto.spotify_entity.SpotifyPlaylistsDTO;
 import com.spotifyapi.dto.spotify_entity.SpotifyReleaseDTO;
-import com.spotifyapi.model.SpotifyArtist;
 import com.spotifyapi.service.SpotifyService;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
-import se.michaelthelin.spotify.model_objects.specification.PlaylistSimplified;
+
 
 import java.util.List;
 import java.util.Set;
@@ -26,7 +24,6 @@ public class SpotifyController {
 
     @GetMapping("/artists")
     public List<SpotifyArtistDTO> getMyArtist(@RequestHeader(value = "Authorization") String authorizationHeader) {
-
         return spotifyService.getFollowedArtist(authorizationHeader, SpotifyArtistDTO.class);
     }
 

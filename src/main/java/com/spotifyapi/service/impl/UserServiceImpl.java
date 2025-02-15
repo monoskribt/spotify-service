@@ -58,7 +58,7 @@ public class UserServiceImpl implements UserService {
             newUser.setUsername(userProfile.getDisplayName());
             newUser.setEmail(userProfile.getEmail());
             newUser.setId(userProfile.getId());
-            newUser.setAccessToken("Bearer " + tokens.getAccessToken());
+            newUser.setAccessToken("access_token " + tokens.getAccessToken());
             newUser.setRefreshToken(tokens.getRefreshToken());
 
             newUser.setExpiresAccessTokenAt(Instant.now().plusSeconds(ONE_HOUR));
@@ -117,7 +117,7 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(spotifyApi.getCurrentUsersProfile().build().execute().getId())
                 .orElseThrow(() -> new UserNotFoundException("User not found in DB"));
 
-        user.setAccessToken("Bearer " + tokensDTO.getAccessToken());
+        user.setAccessToken("access_token " + tokensDTO.getAccessToken());
         user.setRefreshToken(tokensDTO.getRefreshToken());
 
         user.setExpiresAccessTokenAt(Instant.now().plusSeconds(ONE_HOUR));

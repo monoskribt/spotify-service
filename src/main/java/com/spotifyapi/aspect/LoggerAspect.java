@@ -11,7 +11,6 @@ import org.aspectj.lang.annotation.Aspect;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
 
 @Aspect
 @Component
@@ -50,11 +49,5 @@ public class LoggerAspect {
         logger.setStatus("FAILED");
 
         loggerRepository.save(logger);
-    }
-
-
-
-    private String truncate(String value) {
-        return value.length() > 250 ? value.substring(0, 250) + "." : value;
     }
 }

@@ -21,6 +21,7 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.stereotype.Service;
@@ -57,6 +58,7 @@ public class SpotifyServiceImpl implements SpotifyService {
 
     @Override
     @SneakyThrows
+    @Cacheable(value = "artists", key = "#authorizationHeader")
     public <T> List<T> getFollowedArtist(String authorizationHeader, Class<T> returnTypeOfClass) {
         List<SpotifyArtist> followedArtists = new ArrayList<>();
         int limit = 50;
@@ -79,6 +81,7 @@ public class SpotifyServiceImpl implements SpotifyService {
             }
         }
 
+        log.info("working is method 'getFollowedArtist', but not cache");
         return followedArtists.stream()
                 .map(artis -> createNewInstanceOfArtist(returnTypeOfClass, artis))
                 .collect(Collectors.toList());
@@ -95,13 +98,16 @@ public class SpotifyServiceImpl implements SpotifyService {
         throw new IllegalArgumentException("Error type of class: " + returnTypeOf.getName());
     }
 
-    @SneakyThrows
+
     @Override
+    @SneakyThrows
+    @Cacheable(value = "playlists", key = "#authorizationHeader")
     public Set<SpotifyPlaylistsDTO> getOfUsersPlaylists(String authorizationHeader) {
         var listOfPlaylist = Arrays.stream(spotifyApi.getListOfCurrentUsersPlaylists()
                 .build()
                 .execute().getItems()).collect(Collectors.toSet());
 
+        log.info("working is method 'getOfUsersPlaylists', but not cache");
         return listOfPlaylist.stream()
                 .map(playlist -> new SpotifyPlaylistsDTO(playlist.getId(), playlist.getName()))
                 .collect(Collectors.toSet());
@@ -116,6 +122,7 @@ public class SpotifyServiceImpl implements SpotifyService {
 
     @Override
     @SneakyThrows
+    @Cacheable(value = "releases", key = "#authorizationHeader + '_' + #releaseOfDay")
     public <T> List<T> getReleases(String authorizationHeader, Long releaseOfDay,
                                    Class<T> returnTypeOfClass) {
         List<SpotifyArtist> artists = getFollowedArtist(authorizationHeader, SpotifyArtist.class);
@@ -178,7 +185,7 @@ public class SpotifyServiceImpl implements SpotifyService {
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
 
         log.info("Size of listOfAlbums: {}", listOfAlbums.size());
-
+        log.info("working is method 'getReleases', but not cache");
         return listOfAlbums.stream()
                 .map(release -> createNewInstanceOfReleases(returnTypeOfClass, release))
                 .collect(Collectors.toList());
@@ -189,7 +196,7 @@ public class SpotifyServiceImpl implements SpotifyService {
         if(returnTypeOf.equals(AlbumSimplified.class)) {
             return returnTypeOf.cast(album);
         } else if(returnTypeOf.equals(SpotifyReleaseDTO.class)) {
-            return returnTypeOf.cast(new SpotifyArtistDTO(album.getName()));
+            return returnTypeOf.cast(new SpotifyReleaseDTO(album.getId(), album.getName()));
         }
 
         throw new IllegalArgumentException("Error type of class: " + returnTypeOf.getName());
