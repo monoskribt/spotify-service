@@ -35,6 +35,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -134,55 +135,79 @@ public class SpotifyServiceImpl implements SpotifyService {
         int totalArtists = artists.size();
         AtomicInteger processedArtists = new AtomicInteger(0);
 
-        List<CompletableFuture<Void>> futures = artists.stream()
-                .map(artist -> CompletableFuture.runAsync(() -> {
-                    try {
-                        var items = spotifyApi.getArtistsAlbums(artist.getId())
-                                .build()
-                                .execute();
+        ExecutorService executorService = Executors.newFixedThreadPool(10);
 
-                        if (items == null || items.getItems().length == 0) {
-                            log.info("No albums for artist: {}", artist.getName());
-                            return;
+        try {
+            List<CompletableFuture<Void>> futures = artists.stream()
+                    .map(artist -> CompletableFuture.runAsync(() -> {
+                        try {
+                            int offset = 0;
+                            String nextPage = null;
+
+                            do {
+                                var items = spotifyApi.getArtistsAlbums(artist.getId())
+                                        .limit(50)
+                                        .offset(offset)
+                                        .build()
+                                        .execute();
+
+                                if (items == null || items.getItems().length == 0) {
+                                    log.info("No albums for artist: {}", artist.getName());
+                                    return;
+                                }
+
+                                var albums = Arrays.stream(items.getItems())
+                                        .filter(album -> {
+                                            try {
+                                                if (album.getReleaseDate() == null || album.getReleaseDate().isEmpty()) {
+                                                    return false;
+                                                }
+
+                                                LocalDate releaseDate;
+                                                String releaseDateString = album.getReleaseDate();
+
+                                                if (releaseDateString.length() == 4) {
+                                                    releaseDate = LocalDate.parse(releaseDateString + "-01-01", yearFormatter);
+                                                } else if (releaseDateString.length() == 7) {
+                                                    releaseDate = LocalDate.parse(releaseDateString + "-01", DateTimeFormatter.ofPattern("yyyy-MM"));
+                                                } else {
+                                                    releaseDate = LocalDate.parse(releaseDateString, yearMonthDayFormatter);
+                                                }
+
+                                                return releaseDate.isAfter(LocalDate.now().minusDays(releaseOfDay));
+                                            } catch (DateTimeParseException e) {
+                                                log.error("Error parsing release date for album: {}. Error: {}", album.getName(), e.getMessage());
+                                                return false;
+                                            }
+                                        })
+                                        .filter(album -> Arrays.stream(album.getArtists())
+                                                .anyMatch(albumArtist ->
+                                                        albumArtist.getId().equals(artist.getId())))
+                                        .toList();
+
+                                listOfAlbums.addAll(albums);
+
+                                nextPage = items.getNext();
+                                offset += 50;
+
+                            } while (nextPage != null);
+
+                            int progress = processedArtists.incrementAndGet();
+                            int remaining = totalArtists - progress;
+                            log.info("Processed artist: {}, remaining: {}", artist.getName(), remaining);
+                            messagingTemplate.convertAndSend("/topic/progress",
+                                    new ProgressArtistsUpdate(progress, totalArtists));
+
+                        } catch (Exception e) {
+                            log.error("Error processing artist {}: {}", artist.getName(), e.getMessage());
                         }
+                    }, executorService))
+                    .toList();
 
-                        var albums = Arrays.stream(items.getItems())
-                                .filter(album -> {
-                                    try {
-                                        if (album.getReleaseDate() == null || album.getReleaseDate().isEmpty()) {
-                                            return false;
-                                        }
-
-                                        LocalDate releaseDate;
-                                        String releaseDateString = album.getReleaseDate();
-
-                                        if (releaseDateString.length() == 4) {
-                                            releaseDate = LocalDate.parse(releaseDateString + "-01-01", yearFormatter);
-                                        } else {
-                                            releaseDate = LocalDate.parse(releaseDateString, yearMonthDayFormatter);
-                                        }
-
-                                        return releaseDate.isAfter(LocalDate.now().minusDays(releaseOfDay));
-                                    } catch (DateTimeParseException e) {
-                                        log.error("Error parsing release date for album: {}. Error: {}", album.getName(), e.getMessage());
-                                        return false;
-                                    }
-                                })
-                                .toList();
-
-                        listOfAlbums.addAll(albums);
-
-                        int progress = processedArtists.incrementAndGet();
-                        int remaining = totalArtists - progress;
-                        log.info("Processed artist: {}, remaining: {}", artist.getName(), remaining);
-                        messagingTemplate.convertAndSend("/topic/progress", new ProgressArtistsUpdate(progress, totalArtists));
-                    } catch (Exception e) {
-                        log.error("Error processing artist {}: {}", artist.getName(), e.getMessage());
-                    }
-                }, Executors.newFixedThreadPool(10)))
-                .toList();
-
-        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+        } finally {
+            executorService.shutdown();
+        }
 
         log.info("Size of listOfAlbums: {}", listOfAlbums.size());
         log.info("working is method 'getReleases', but not cache");
