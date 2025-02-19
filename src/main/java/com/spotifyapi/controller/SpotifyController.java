@@ -42,19 +42,19 @@ public class SpotifyController {
     }
 
     @PostMapping("/playlists/{playlistId}/releases")
-    public ResponseEntity<String> saveReleasesToPlaylist(@PathVariable ("playlistId") String playlistId,
-                                                         @RequestParam ("releaseOfDay") Long releaseOfDay,
-                                                         @RequestHeader(value = "Authorization") String authorizationHeader) {
-        String result = spotifyService.saveReleasesToPlaylistById(authorizationHeader, playlistId, releaseOfDay);
+    public ResponseEntity<Integer> saveReleasesToPlaylist(@PathVariable ("playlistId") String playlistId,
+                                                          @RequestParam ("releaseOfDay") Long releaseOfDay,
+                                                          @RequestHeader(value = "Authorization") String authorizationHeader) {
+        int result = spotifyService.saveReleasesToPlaylistById(authorizationHeader, playlistId, releaseOfDay);
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(result);
     }
 
     @DeleteMapping("/playlists/{playlistId}/items")
-    public ResponseEntity<String> deleteAllItemsFromPlaylistById(@PathVariable("playlistId") String playlistId,
-                                                                 @RequestHeader(value = "Authorization") String authorizationHeader) {
-        String result = spotifyService.deleteAllOfTracksFromPlaylistById(authorizationHeader, playlistId);
+    public ResponseEntity<Integer> deleteAllItemsFromPlaylistById(@PathVariable("playlistId") String playlistId,
+                                                                  @RequestHeader(value = "Authorization") String authorizationHeader) {
+        int result = spotifyService.deleteAllOfTracksFromPlaylistById(authorizationHeader, playlistId);
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(result);

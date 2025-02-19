@@ -14,11 +14,13 @@ import com.spotifyapi.model.SpotifyTrackFromPlaylist;
 import com.spotifyapi.model.SpotifyUserPlaylist;
 import com.spotifyapi.repository.PlaylistRepository;
 import com.spotifyapi.repository.TrackRepository;
+import com.spotifyapi.service.PaginationService;
 import com.spotifyapi.service.SpotifyService;
 import com.spotifyapi.service.SpotifyTrackService;
 import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.catalina.connector.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.Cacheable;
@@ -27,21 +29,18 @@ import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import se.michaelthelin.spotify.SpotifyApi;
-import se.michaelthelin.spotify.enums.ModelObjectType;
 import se.michaelthelin.spotify.model_objects.specification.*;
 
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
+
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import static com.spotifyapi.constant.ConstantDayForReleases.THIRTY_DAYS;
-import static com.spotifyapi.constant.ConstantResponses.*;
 
 @Service
 @AllArgsConstructor
@@ -54,6 +53,7 @@ public class SpotifyServiceImpl implements SpotifyService {
     private final SpotifyTrackService spotifyTrackService;
     private final TrackRepository trackRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final PaginationService paginationService;
 
     private static final Logger logger = LoggerFactory.getLogger(SpotifyServiceImpl.class);
 
@@ -61,26 +61,7 @@ public class SpotifyServiceImpl implements SpotifyService {
     @SneakyThrows
     @Cacheable(value = "artists", key = "#authorizationHeader")
     public <T> List<T> getFollowedArtist(String authorizationHeader, Class<T> returnTypeOfClass) {
-        List<SpotifyArtist> followedArtists = new ArrayList<>();
-        int limit = 50;
-        String cursor = "0";
-
-        while (cursor != null) {
-            var responseFollowerArtists = spotifyApi.getUsersFollowedArtists(ModelObjectType.ARTIST)
-                    .limit(limit)
-                    .after(cursor)
-                    .build()
-                    .execute();
-
-            if(responseFollowerArtists != null) {
-                followedArtists.addAll(Arrays.stream(responseFollowerArtists.getItems())
-                        .map(artist -> new SpotifyArtist(artist.getId(), artist.getName()))
-                        .toList());
-                cursor = responseFollowerArtists.getCursors()[0].getAfter();
-            } else {
-                break;
-            }
-        }
+        List<SpotifyArtist> followedArtists = paginationService.paginationOfArtists();
 
         log.info("working is method 'getFollowedArtist', but not cache");
         return followedArtists.stream()
@@ -127,95 +108,49 @@ public class SpotifyServiceImpl implements SpotifyService {
     public <T> List<T> getReleases(String authorizationHeader, Long releaseOfDay,
                                    Class<T> returnTypeOfClass) {
         List<SpotifyArtist> artists = getFollowedArtist(authorizationHeader, SpotifyArtist.class);
-        List<AlbumSimplified> listOfAlbums = Collections.synchronizedList(new ArrayList<>());
-
-        DateTimeFormatter yearFormatter = DateTimeFormatter.ofPattern("yyyy");
-        DateTimeFormatter yearMonthDayFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        Queue<AlbumSimplified> listOfAlbums = new ConcurrentLinkedQueue<>();
 
         int totalArtists = artists.size();
-        AtomicInteger processedArtists = new AtomicInteger(0);
+        AtomicInteger processedArtistsCounter = new AtomicInteger(0);
 
         ExecutorService executorService = Executors.newFixedThreadPool(10);
 
         try {
-            List<CompletableFuture<Void>> futures = artists.stream()
-                    .map(artist -> CompletableFuture.runAsync(() -> {
-                        try {
-                            int offset = 0;
-                            String nextPage = null;
+            List<CompletableFuture<List<AlbumSimplified>>> futures = artists.stream()
+                    .map(artist -> CompletableFuture.supplyAsync(() ->
+                            processedArtist(releaseOfDay, artist, processedArtistsCounter, totalArtists), executorService)
+                    ).toList();
 
-                            do {
-                                var items = spotifyApi.getArtistsAlbums(artist.getId())
-                                        .limit(50)
-                                        .offset(offset)
-                                        .build()
-                                        .execute();
 
-                                if (items == null || items.getItems().length == 0) {
-                                    log.info("No albums for artist: {}", artist.getName());
-                                    return;
-                                }
+            futures.forEach(future -> listOfAlbums.addAll(future.join()));
 
-                                var albums = Arrays.stream(items.getItems())
-                                        .filter(album -> {
-                                            try {
-                                                if (album.getReleaseDate() == null || album.getReleaseDate().isEmpty()) {
-                                                    return false;
-                                                }
-
-                                                LocalDate releaseDate;
-                                                String releaseDateString = album.getReleaseDate();
-
-                                                if (releaseDateString.length() == 4) {
-                                                    releaseDate = LocalDate.parse(releaseDateString + "-01-01", yearFormatter);
-                                                } else if (releaseDateString.length() == 7) {
-                                                    releaseDate = LocalDate.parse(releaseDateString + "-01", DateTimeFormatter.ofPattern("yyyy-MM"));
-                                                } else {
-                                                    releaseDate = LocalDate.parse(releaseDateString, yearMonthDayFormatter);
-                                                }
-
-                                                return releaseDate.isAfter(LocalDate.now().minusDays(releaseOfDay));
-                                            } catch (DateTimeParseException e) {
-                                                log.error("Error parsing release date for album: {}. Error: {}", album.getName(), e.getMessage());
-                                                return false;
-                                            }
-                                        })
-                                        .filter(album -> Arrays.stream(album.getArtists())
-                                                .anyMatch(albumArtist ->
-                                                        albumArtist.getId().equals(artist.getId())))
-                                        .toList();
-
-                                listOfAlbums.addAll(albums);
-
-                                nextPage = items.getNext();
-                                offset += 50;
-
-                            } while (nextPage != null);
-
-                            int progress = processedArtists.incrementAndGet();
-                            int remaining = totalArtists - progress;
-                            log.info("Processed artist: {}, remaining: {}", artist.getName(), remaining);
-                            messagingTemplate.convertAndSend("/topic/progress",
-                                    new ProgressArtistsUpdate(progress, totalArtists));
-
-                        } catch (Exception e) {
-                            log.error("Error processing artist {}: {}", artist.getName(), e.getMessage());
-                        }
-                    }, executorService))
-                    .toList();
-
-            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
         } finally {
             executorService.shutdown();
         }
 
         log.info("Size of listOfAlbums: {}", listOfAlbums.size());
         log.info("working is method 'getReleases', but not cache");
+
         return listOfAlbums.stream()
                 .map(release -> createNewInstanceOfReleases(returnTypeOfClass, release))
                 .collect(Collectors.toList());
     }
 
+    private List<AlbumSimplified> processedArtist(Long releaseOfDay,
+                                                  SpotifyArtist artist,
+                                                  AtomicInteger processedArtistsCounter,
+                                                  int totalArtists) {
+        List<AlbumSimplified> albums = paginationService
+                .paginationOfReleasesArtist(artist.getId(), releaseOfDay);
+
+        int progress = processedArtistsCounter.incrementAndGet();
+        int remaining = totalArtists - progress;
+        log.info("Processed artist: {}, remaining: {}", artist.getName(), remaining);
+        messagingTemplate.convertAndSend("/topic/progress",
+                new ProgressArtistsUpdate(progress, totalArtists));
+
+        return albums;
+    }
 
     private <T> T createNewInstanceOfReleases(Class<T> returnTypeOf, AlbumSimplified album) {
         if(returnTypeOf.equals(AlbumSimplified.class)) {
@@ -230,10 +165,10 @@ public class SpotifyServiceImpl implements SpotifyService {
     @SneakyThrows
     @Override
     @Transactional
-    public String saveReleasesToPlaylistById(String authorizationHeader, String playlistId, Long releaseOfDay) {
+    public int saveReleasesToPlaylistById(String authorizationHeader, String playlistId, Long releaseOfDay) {
         List<AlbumSimplified> releases =
                 getReleases(authorizationHeader, releaseOfDay, AlbumSimplified.class);
-        List<String> trackUrl = new ArrayList<>();
+
         List<SpotifyTrackFromPlaylist> saveTrackToDB = new ArrayList<>();
 
         SpotifyUserPlaylist playlist = playlistRepository.findById(playlistId)
@@ -242,100 +177,59 @@ public class SpotifyServiceImpl implements SpotifyService {
         Set<String> existingTrackIds = spotifyTrackService
                 .getExistingTrackIds(playlist.getId());
 
-        boolean checkToAddTrack = false;
 
-        for (AlbumSimplified album : releases) {
-            int offset = 0;
-            boolean hasMore = true;
-
-            while (hasMore) {
-                var tracksPage = spotifyApi.getAlbumsTracks(album.getId())
-                        .limit(50)
-                        .offset(offset)
-                        .build()
-                        .execute();
-
-                for (TrackSimplified track : tracksPage.getItems()) {
-                    if(track != null && !existingTrackIds.contains(track.getId())) {
-                        trackUrl.add(track.getUri());
-
-                        SpotifyTrackFromPlaylist trackEntity = spotifyTrackService
-                                .convertTrackToTrackDBEntity(new TrackSimplifiedWrapper(track), playlist);
-
-                        saveTrackToDB.add(trackEntity);
-                        checkToAddTrack = true;
-                    }
-                }
-
-                hasMore = tracksPage.getNext() != null;
-                offset += 50;
-            }
-
-        }
+        List<String> trackUrl = releases
+                .stream()
+                .flatMap(album -> paginationService.paginationOfSaveReleasesMethod(album.getId())
+                        .stream())
+                .filter(track -> !existingTrackIds.contains(track.getId()))
+                .peek(track -> {
+                    SpotifyTrackFromPlaylist trackEntity =
+                            spotifyTrackService.convertTrackToTrackDBEntity(
+                                    new TrackSimplifiedWrapper(track),
+                                    playlist);
+                    saveTrackToDB.add(trackEntity);
+                })
+                .map(TrackSimplified::getUri)
+                .toList();
 
         log.info("List with releases 'Save Track To DB' is: {}", saveTrackToDB.size());
         if(saveTrackToDB.isEmpty()) {
-            return NOTHING_SAVE_TO_DB;
+            return Response.SC_NO_CONTENT;
         }
 
-        if (checkToAddTrack) {
-            trackRepository.saveAll(saveTrackToDB);
+        trackRepository.saveAll(saveTrackToDB);
 
-            for (int i = 0; i < trackUrl.size(); i += 50) {
-                List<String> trackUrlPart = trackUrl.subList(i, Math.min(i + 50, trackUrl.size()));
+        for (int i = 0; i < trackUrl.size(); i += 50) {
+            List<String> trackUrlPart = trackUrl.subList(i, Math.min(i + 50, trackUrl.size()));
 
-                spotifyApi.addItemsToPlaylist(playlistId, trackUrlPart.toArray(new String[0]))
-                        .build()
-                        .execute();
-            }
-
-            return SUCCESSFULLY_ADDED;
-        } else {
-            return RELEASE_IS_ALREADY_EXIST;
+            spotifyApi.addItemsToPlaylist(playlistId, trackUrlPart.toArray(new String[0]))
+                    .build()
+                    .execute();
         }
+
+        return Response.SC_OK;
     }
 
     @SneakyThrows
     @Override
     @Transactional
-    public String deleteAllOfTracksFromPlaylistById(String authorizationHeader, String playlistId) {
-        List<PlaylistTrack> allTracks = new ArrayList<>();
-
-        int limit = 50;
-        int offset = 0;
-        boolean hasMore = true;
-
-        while (hasMore) {
-            PlaylistTrack[] trackInPlaylist = spotifyApi.getPlaylistsItems(playlistId)
-                    .offset(offset)
-                    .limit(limit)
-                    .build()
-                    .execute()
-                    .getItems();
-
-            if (trackInPlaylist != null) {
-                allTracks.addAll(Arrays.asList(trackInPlaylist));
-            } else {
-                logger.info("Playlist is empty.");
-                break;
-            }
-
-            hasMore = trackInPlaylist.length == limit;
-            offset += limit;
-        }
+    public int deleteAllOfTracksFromPlaylistById(String authorizationHeader, String playlistId) {
+        List<PlaylistTrack> allTracks = Optional.ofNullable(paginationService.paginationOfDeleteReleasesMethod(playlistId))
+                .orElse(Collections.emptyList());
 
         if (allTracks.isEmpty()) {
             logger.info("Playlist is already empty");
-            return PLAYLIST_IS_EMPTY;
+            return Response.SC_NO_CONTENT;
         }
 
-        JsonArray removeTracks = new JsonArray();
-
-        for(PlaylistTrack track : allTracks) {
-            JsonObject trackObj = new JsonObject();
-            trackObj.addProperty("uri", track.getTrack().getUri());
-            removeTracks.add(trackObj);
-        }
+        JsonArray removeTracks = allTracks.stream()
+                .map(track -> {
+                    JsonObject trackObj = new JsonObject();
+                    trackObj.addProperty("uri", track.getTrack().getUri());
+                    return trackObj;
+                })
+                .collect(JsonArray::new, JsonArray::add, JsonArray::addAll);
 
         try {
             for(int i = 0; i < removeTracks.size(); i+= 50) {
@@ -353,10 +247,10 @@ public class SpotifyServiceImpl implements SpotifyService {
             List<SpotifyTrackFromPlaylist> tracksToRemove = trackRepository.findAllByUserPlaylistId(playlistId);
             trackRepository.deleteAll(tracksToRemove);
 
-            return SUCCESSFULLY_REMOVED;
+            return Response.SC_OK;
         } catch (Exception e) {
             logger.error("Error while removing tracks from playlist: {}", e.getMessage());
-            return "Something went wrong: " + e.getMessage();
         }
+        return Response.SC_INTERNAL_SERVER_ERROR;
     }
 }
