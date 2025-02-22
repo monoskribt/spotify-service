@@ -2,6 +2,7 @@ package com.spotifyapi.service.impl;
 
 
 import com.spotifyapi.dto.TokensDTO;
+import com.spotifyapi.dto.UserInfoDTO;
 import com.spotifyapi.enums.SubscribeStatus;
 import com.spotifyapi.exception.SpotifyApiException;
 import com.spotifyapi.exception.UserNotFoundException;
@@ -45,11 +46,10 @@ public class UserServiceImpl implements UserService {
     private final PlaylistRepository playlistRepository;
     private final TrackRepository trackRepository;
     private final TokenService tokenService;
-    private final SpotifyAuth spotifyAuth;
 
     @Transactional
     @Override
-    public void saveUserOfData(TokensDTO tokens) {
+    public void saveUserOfData(TokensDTO tokens, UserInfoDTO userInfoDTO) {
         try {
             User newUser = new User();
 
@@ -63,6 +63,9 @@ public class UserServiceImpl implements UserService {
 
             newUser.setExpiresAccessTokenAt(Instant.now().plusSeconds(ONE_HOUR));
             newUser.setExpiresRefreshTokenAt(Instant.now().plusSeconds(ONE_WEEK));
+
+            userInfoDTO.setUserId(userProfile.getId());
+            userInfoDTO.setNickname(userProfile.getDisplayName());
 
             userRepository.save(newUser);
 
@@ -186,6 +189,7 @@ public class UserServiceImpl implements UserService {
         var profile = spotifyApi.getCurrentUsersProfile().build().execute();
         return profile.getDisplayName();
     }
+
 
     @SneakyThrows
     @Override

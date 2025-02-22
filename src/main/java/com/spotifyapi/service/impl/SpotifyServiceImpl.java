@@ -3,6 +3,7 @@ package com.spotifyapi.service.impl;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.spotifyapi.customAnnotation.RetryAfterRequest;
 import com.spotifyapi.dto.spotify_entity.SpotifyArtistDTO;
 import com.spotifyapi.dto.spotify_entity.SpotifyPlaylistsDTO;
 import com.spotifyapi.dto.spotify_entity.SpotifyReleaseDTO;
@@ -118,7 +119,11 @@ public class SpotifyServiceImpl implements SpotifyService {
         try {
             List<CompletableFuture<List<AlbumSimplified>>> futures = artists.stream()
                     .map(artist -> CompletableFuture.supplyAsync(() ->
-                            processedArtist(releaseOfDay, artist, processedArtistsCounter, totalArtists), executorService)
+                            processedArtist(releaseOfDay,
+                                    artist,
+                                    processedArtistsCounter,
+                                    totalArtists),
+                            executorService)
                     ).toList();
 
 
@@ -127,6 +132,7 @@ public class SpotifyServiceImpl implements SpotifyService {
         } finally {
             executorService.shutdown();
         }
+
 
         log.info("Size of listOfAlbums: {}", listOfAlbums.size());
         log.info("working is method 'getReleases', but not cache");

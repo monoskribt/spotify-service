@@ -1,5 +1,6 @@
 package com.spotifyapi.service.impl;
 
+import com.spotifyapi.customAnnotation.RetryAfterRequest;
 import com.spotifyapi.model.SpotifyArtist;
 import com.spotifyapi.service.PaginationService;
 import lombok.RequiredArgsConstructor;
@@ -103,9 +104,6 @@ public class PaginationServiceImpl implements PaginationService {
                             return false;
                         }
                     })
-//                    .filter(album -> Arrays.stream(album.getArtists())
-//                            .anyMatch(albumArtist ->
-//                                    albumArtist.getId().equals(artistId)))
                     .toList());
 
             nextPage = items.getNext();
@@ -116,13 +114,14 @@ public class PaginationServiceImpl implements PaginationService {
         return albums;
     }
 
+    @RetryAfterRequest
     @SneakyThrows
     @Override
     public List<TrackSimplified> paginationOfSaveReleasesMethod(String albumId) {
         List<TrackSimplified> tracks = new ArrayList<>();
 
         int offset = 0;
-        String nextPage = null;
+        String nextPage;
 
         do {
             var tracksPage = spotifyApi.getAlbumsTracks(albumId)

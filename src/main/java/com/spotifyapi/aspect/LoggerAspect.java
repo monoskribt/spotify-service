@@ -1,5 +1,6 @@
 package com.spotifyapi.aspect;
 
+import com.spotifyapi.dto.UserInfoDTO;
 import com.spotifyapi.model.Logger;
 import com.spotifyapi.repository.LoggerRepository;
 import com.spotifyapi.service.UserService;
@@ -22,11 +23,13 @@ public class LoggerAspect {
 
     @AfterReturning(pointcut = "execution(* com.spotifyapi.controller.SpotifyController.*(..))")
     public void afterReturning(JoinPoint joinPoint) {
+        UserInfoDTO userInfoDTO = new UserInfoDTO();
+
         String methodName = joinPoint.getSignature().getName();
 
         Logger logger = new Logger();
-        logger.setUsername(userService.getCurrentUsername());
-        logger.setUserId(userService.getCurrentId());
+        logger.setUsername(userInfoDTO.getNickname());
+        logger.setUserId(userInfoDTO.getUserId());
         logger.setMethodName(methodName);
         logger.setDateTime(LocalDateTime.now());
         logger.setMessage("Successfully");
